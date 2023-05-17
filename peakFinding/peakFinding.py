@@ -1,7 +1,19 @@
 import argparse
 import pandas as pd
+import glob 
 
 WINDOW_LENGTH = 75
+COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
+
+# dictionary stores counts for each window for given starting position
+sample_counts = dict()
+control_counts = dict()
+
+# All the filtered dataframes for each chromosome
+sample_data = dict()
+control_data = dict()
+
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -13,40 +25,63 @@ def main():
     parser.add_argument('-style', help='<factor> for TFs; <histone> for histone modifications')
 
     args = parser.parse_args()
-    gather_data(args.control, args.tag_directory)
-    
 
-def gather_data(control, tag_directory):
-    chr1 = pd.read_csv(tag_directory, sep='\t')
-    input1 = pd.read_csv(tag_directory, sep='\t')
-    columns = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
-    chr1.columns = columns
-    input1.columns = columns
+    gather_data(sample_data, args.tag_directory)
+    gather_data(control_data, args.control)
 
-    chr1_filt = chr1[['position', 'read_len']]
-    input1_filt = input1[['position', 'read_len']]
-
-    # check that it is actually sorted
-
-    chr1_filt.sort_values(by="position", ascending=True, inplace=True)
-    # input1_filt.sort_values(by="position", ascending=True, inplace=True)
-
-    window = [0] * 2000000
-    for i in range(len(window)):
-        for index, row in chr1_filt.iterrows():
-            window[i] += overlap(i, row['position'], row['read_len'])
-        
-    print(window)
+    get_counts(sample_data, sample_counts)
+    cnt = 0
+    for x,y in sample_counts.items():
+        if y > 1:
+            cnt += 1
+    print(cnt)
 
 
-# tag – start index, tag_len – length of tag, genome – starting position
-def overlap(window, tag, tag_len):
+# getting all the tag files for tag directory, filtering for necessary columns
+def gather_data(data_dict, directory):
+    tag_list = []
+    tag_list = glob.glob(f"{directory}/*.tsv")
+    for tag_file in tag_list:
+        tag = pd.read_csv(tag_file, sep='\t')
+        tag.columns = COLUMNS
+        # removing unnecesary
+        tag_filt = tag[['position', 'read_len', 'strand']]
+        # ensure that it is sorted by position
+        tag_filt.sort_values(by="position", ascending=True, inplace=True)
+        data_dict[tag_file] = tag_filt
 
-    if (window <= tag <= window + WINDOW_LENGTH) or (window <= tag + tag_len <= window + WINDOW_LENGTH):
-        return True
-    if (tag <= window) and (tag + tag_len >= window + WINDOW_LENGTH):
-        return True
-    return False
+
+
+# runs through all the tags for each sample
+# for each read in the sample updates counts based on overlap
+def get_counts(data, dictionary):
+    for tag_file, tag_filt in data.items():
+        for index, row in tag_filt.iterrows():
+            overlap(dictionary, row['position'], row['read_len'], row['strand'])
+
+
+# overlap – increments all the values in the dictionary of windows 
+# tag – start index of tag, tag_len – length of tag, dictionary – read
+def overlap(dictionary, tag, tag_len, strand):
+        center = int(tag + tag_len / 2)
+        # the range of for loop is representing the starting positions of the window
+        if strand: # checks for strand direction
+            for x in range(center - WINDOW_LENGTH, center + 1):
+                # checking if the position exists; if yes – increment
+                if dictionary.get(x) == None:
+                    dictionary[x] = 1
+                else:
+                    dictionary[x] += 1
+        else:
+            # the range of for loop is representing the starting positions of the window
+            # range is reversed
+            for x in range(center + WINDOW_LENGTH, center + 1, -1):
+                # checking if the position exists; if yes – increment
+                if dictionary.get(x) == None:
+                    dictionary[x] = 1
+                else:
+                    dictionary[x] += 1
+
 
 
 
