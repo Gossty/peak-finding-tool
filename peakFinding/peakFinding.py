@@ -1,6 +1,7 @@
 import argparse
 import pandas as pd
 import glob 
+from math import log2
 
 WINDOW_LENGTH = 75
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
@@ -32,16 +33,10 @@ def main():
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
     cnt = 0
-    for x,y in sample_counts.items():
-        if y > 1:
-            cnt += 1
-    print("sample_counts: ", cnt)
-    print()
-    cnt = 0
-    for x,y in control_counts.items():
-        if y > 1:
-            cnt += 1
-    print("control_counts: ", cnt)
+
+
+    log_fold = log_fc(sample_counts, control_counts)
+    print(len(log_fold))
 
 
 # getting all the tag files for tag directory, filtering for necessary columns
@@ -91,8 +86,12 @@ def overlap(dictionary, tag, tag_len, strand):
 
 
 def log_fc(sample_counts, control_counts):
-    for index, counts in sample_counts.iterritems():
-        pass
+    log_dict = dict()
+    for index in sample_counts.keys():
+        if control_counts.get(index) == None:
+            continue
+        log_dict[index] = log2(sample_counts[index] / control_counts[index])
+    return log_dict
 
 
 main()
