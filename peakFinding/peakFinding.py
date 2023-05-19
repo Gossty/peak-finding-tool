@@ -2,8 +2,11 @@ import argparse
 import pandas as pd
 import glob 
 from math import log2
+from scipy.stats import poisson
 
 WINDOW_LENGTH = 75
+GENOME_LENGTH = 2*10**9
+THRESHOLD = 1 * 10**(-4)
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 
 # dictionary stores counts for each window for given starting position
@@ -33,8 +36,8 @@ def main():
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
 
-    log_fc_filt(sample_counts, control_counts)
-
+    tf_bound = log_fc_filt(sample_counts, control_counts)
+    poisson_filt(tf_bound, sample_counts)
 
 # getting all the tag files for tag directory, filtering for necessary columns
 def gather_data(data_dict, directory):
@@ -45,8 +48,6 @@ def gather_data(data_dict, directory):
         tag.columns = COLUMNS
         # removing unnecesary
         tag_filt = tag[['position', 'read_len', 'strand']]
-        # ensure that it is sorted by position
-        # tag_filt.sort_values(by="position", ascending=True, inplace=True)
         data_dict[tag_file] = tag_filt
 
 
@@ -82,22 +83,37 @@ def overlap(dictionary, tag, tag_len, strand):
                     dictionary[x] += 1
 
 
-# 
+# filtering based of log fold change.
+# tf_bound keeps track of positions where TFs bound based on whether log2 fold change < 4
 def log_fc_filt(sample_counts, control_counts):
     tf_bound = []
-    cnt = 0
-    print("length of sample_counts before filtering", len(sample_counts))
     for index in sample_counts.keys():
+        # check if control has this window
         if control_counts.get(index) == None:
             continue
         elif log2(sample_counts[index] / control_counts[index]) < 4:
-            cnt += 1
             tf_bound.append(index)
-        
-    print("less than 4: ", cnt)
 
-    print("length of sample_counts after filtering", len(sample_counts))
+    return tf_bound
 
+def poisson_filt(tf_bound, sample_counts):
+    peaks = []
+    yang_peaks = []
+    average_exp = 0
+    for index in tf_bound:
+        exp = (sample_counts[index] / GENOME_LENGTH) * WINDOW_LENGTH
+        average_exp += exp
+        p_value = poisson.cdf(sample_counts[index], exp)
+        if p_value < THRESHOLD:
+            peaks.append(index)
+        if (1 - p_value) < THRESHOLD:
+            yang_peaks.append(index)
+    average_exp /= len(tf_bound)
+    print("average_exp", average_exp)
+    print("total number of peaks: ", len(peaks))
+    print("total number of Yang peaks: ", len(yang_peaks))
+
+    return peaks
 
 
 main()
