@@ -82,25 +82,22 @@ def overlap(dictionary, tag, tag_len, strand):
                     dictionary[x] += 1
 
 
+# 
 def log_fc_filt(sample_counts, control_counts):
-    log_dict = dict()
+    tf_bound = []
     cnt = 0
     print("length of sample_counts before filtering", len(sample_counts))
     for index in sample_counts.keys():
         if control_counts.get(index) == None:
-            sample_counts.pop(index)
             continue
         elif log2(sample_counts[index] / control_counts[index]) < 4:
             cnt += 1
-            sample_counts.pop(index)
-            control_counts.pop(index)
+            tf_bound.append(index)
         
     print("less than 4: ", cnt)
 
     print("length of sample_counts after filtering", len(sample_counts))
 
-
-    # return log_dict
 
 
 main()
