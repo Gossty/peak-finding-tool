@@ -33,11 +33,7 @@ def main():
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
 
-    print("length of sample counts", len(sample_counts), "length of control counts", len(control_counts))
-
-
-    log_fold = log_fc(sample_counts, control_counts)
-    print("length of log fold", len(log_fold))
+    log_fc_filt(sample_counts, control_counts)
 
 
 # getting all the tag files for tag directory, filtering for necessary columns
@@ -86,13 +82,25 @@ def overlap(dictionary, tag, tag_len, strand):
                     dictionary[x] += 1
 
 
-def log_fc(sample_counts, control_counts):
+def log_fc_filt(sample_counts, control_counts):
     log_dict = dict()
+    cnt = 0
+    print("length of sample_counts before filtering", len(sample_counts))
     for index in sample_counts.keys():
         if control_counts.get(index) == None:
+            sample_counts.pop(index)
             continue
-        log_dict[index] = log2(sample_counts[index] / control_counts[index])
-    return log_dict
+        elif log2(sample_counts[index] / control_counts[index]) < 4:
+            cnt += 1
+            sample_counts.pop(index)
+            control_counts.pop(index)
+        
+    print("less than 4: ", cnt)
+
+    print("length of sample_counts after filtering", len(sample_counts))
+
+
+    # return log_dict
 
 
 main()
