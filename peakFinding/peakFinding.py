@@ -90,6 +90,9 @@ def overlap(dictionary, tag, tag_len, strand):
                     dictionary[x] += 1
 
 
+def log_fc(sample_counts, control_counts):
+    for index, counts in sample_counts.iterritems():
+        pass
 
 
 main()
