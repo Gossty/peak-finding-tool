@@ -30,11 +30,18 @@ def main():
     gather_data(control_data, args.control)
 
     get_counts(sample_data, sample_counts)
+    get_counts(control_data, control_counts)
     cnt = 0
     for x,y in sample_counts.items():
         if y > 1:
             cnt += 1
-    print(cnt)
+    print("sample_counts: ", cnt)
+    print()
+    cnt = 0
+    for x,y in control_counts.items():
+        if y > 1:
+            cnt += 1
+    print("control_counts: ", cnt)
 
 
 # getting all the tag files for tag directory, filtering for necessary columns
