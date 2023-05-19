@@ -32,11 +32,12 @@ def main():
 
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
-    cnt = 0
+
+    print("length of sample counts", len(sample_counts), "length of control counts", len(control_counts))
 
 
     log_fold = log_fc(sample_counts, control_counts)
-    print(len(log_fold))
+    print("length of log fold", len(log_fold))
 
 
 # getting all the tag files for tag directory, filtering for necessary columns
@@ -49,7 +50,7 @@ def gather_data(data_dict, directory):
         # removing unnecesary
         tag_filt = tag[['position', 'read_len', 'strand']]
         # ensure that it is sorted by position
-        tag_filt.sort_values(by="position", ascending=True, inplace=True)
+        # tag_filt.sort_values(by="position", ascending=True, inplace=True)
         data_dict[tag_file] = tag_filt
 
 
