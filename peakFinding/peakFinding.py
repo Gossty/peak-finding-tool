@@ -6,7 +6,7 @@ from scipy.stats import poisson
 
 WINDOW_LENGTH = 75
 GENOME_LENGTH = 2*10**9
-THRESHOLD = 1 * 10**(-120)
+THRESHOLD = 1 * 10**(-40)
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 
 # dictionary stores counts for each window for given starting position
@@ -34,26 +34,30 @@ def main():
 
     args = parser.parse_args()
 
-    gather_data(sample_data, args.tag_directory)
-    gather_data(control_data, args.control)
+    sample_length = gather_data(sample_data, args.tag_directory)
+    input_length = gather_data(control_data, args.control)
+
 
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
 
     tf_bound = log_fc_filt(sample_counts, control_counts)
-    poisson_filt(tf_bound, sample_counts)
+    poisson_filt(tf_bound, sample_counts, input_length)
 
 # getting all the tag files for tag directory, filtering for necessary columns
+# returns total number of tags
 def gather_data(data_dict, directory):
     tag_list = []
     tag_list = glob.glob(f"{directory}/*.tsv")
+    cnt = 0
     for tag_file in tag_list:
         tag = pd.read_csv(tag_file, sep='\t')
         tag.columns = COLUMNS
         # removing unnecesary
         tag_filt = tag[['position', 'read_len', 'strand']]
         data_dict[tag_file] = tag_filt
-
+        cnt += len(tag_filt)
+    return cnt
 
 
 # runs through all the tags for each sample
@@ -109,32 +113,27 @@ def max_fold_filt(log_dict):
     # while
     pass
 
-def poisson_filt(tf_bound, sample_counts):
+def poisson_filt(tf_bound, sample_counts, input_length):
     peaks = []
-    average_exp = 0
     average_sample_cnt = 0
     average_p_val = 0
+    print("total number of tags", input_length)
     print("length of sample counts", len(sample_counts))
     print("length of tf_bound: ", len(tf_bound))
+    #lambda for poisson/expected value
+    exp = (WINDOW_LENGTH * input_length) / GENOME_LENGTH
+    # expected value – shows mean tags for input
     for index in tf_bound:
-
-        #lambda for poisson/expected value
-        exp = (sample_counts[index] / GENOME_LENGTH) * WINDOW_LENGTH
-
-        average_exp += exp
         average_sample_cnt += sample_counts[index]
-
         if sample_counts.get(index) == None:
             continue
-        p_value = poisson.pmf(sample_counts[index], exp)
+        p_value = 1 - (poisson.cdf(sample_counts[index], exp))
         average_p_val += p_value
         if p_value < THRESHOLD:
             peaks.append(index)
 
-    average_exp /= len(tf_bound)
     average_sample_cnt /= len(tf_bound)
     average_p_val /= len(tf_bound)
-    print("average_exp: ", average_exp)
     print("average_sample_cnt: ", average_sample_cnt)
     print("average p-value: ", average_p_val)
     print("total number of peaks: ", len(peaks))
