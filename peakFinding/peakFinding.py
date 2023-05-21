@@ -6,7 +6,7 @@ from scipy.stats import poisson
 
 WINDOW_LENGTH = 75
 GENOME_LENGTH = 2*10**9
-THRESHOLD = 1 * 10**(-4)
+THRESHOLD = 1 * 10**(-120)
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 
 # dictionary stores counts for each window for given starting position
@@ -95,36 +95,50 @@ def log_fc_filt(sample_counts, control_counts):
         # check if control has this window
         if control_counts.get(index) == None:
             continue
-        elif log2(sample_counts[index] / control_counts[index]) < 4:
+        log_value = log2(sample_counts[index] / control_counts[index])
+        if  log_value >= 4:
             tf_bound.append(index)
+            # tf_bound[index] = log_value
 
     return tf_bound
 
+
+# goes through output from 
+def max_fold_filt(log_dict):
+    keys = list(log_dict.keys())[0]
+    # while
+    pass
+
 def poisson_filt(tf_bound, sample_counts):
     peaks = []
-    yang_peaks = []
     average_exp = 0
     average_sample_cnt = 0
+    average_p_val = 0
     print("length of sample counts", len(sample_counts))
     print("length of tf_bound: ", len(tf_bound))
     for index in tf_bound:
+
+        #lambda for poisson/expected value
         exp = (sample_counts[index] / GENOME_LENGTH) * WINDOW_LENGTH
+
         average_exp += exp
         average_sample_cnt += sample_counts[index]
+
         if sample_counts.get(index) == None:
             continue
         p_value = poisson.pmf(sample_counts[index], exp)
+        average_p_val += p_value
         if p_value < THRESHOLD:
             peaks.append(index)
-        if (1 - p_value) < THRESHOLD:
-            yang_peaks.append(index)
 
     average_exp /= len(tf_bound)
     average_sample_cnt /= len(tf_bound)
+    average_p_val /= len(tf_bound)
     print("average_exp: ", average_exp)
     print("average_sample_cnt: ", average_sample_cnt)
+    print("average p-value: ", average_p_val)
     print("total number of peaks: ", len(peaks))
-    print("total number of Yang peaks: ", len(yang_peaks))
+
 
     return peaks
 
