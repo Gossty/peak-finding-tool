@@ -104,10 +104,13 @@ def poisson_filt(tf_bound, sample_counts):
     peaks = []
     yang_peaks = []
     average_exp = 0
-    print("reached poisson; length of tf_bound: ", tf_bound)
+    average_sample_cnt = 0
+    print("length of sample counts", len(sample_counts))
+    print("length of tf_bound: ", len(tf_bound))
     for index in tf_bound:
         exp = (sample_counts[index] / GENOME_LENGTH) * WINDOW_LENGTH
         average_exp += exp
+        average_sample_cnt += sample_counts[index]
         if sample_counts.get(index) == None:
             continue
         p_value = poisson.pmf(sample_counts[index], exp)
@@ -115,10 +118,11 @@ def poisson_filt(tf_bound, sample_counts):
             peaks.append(index)
         if (1 - p_value) < THRESHOLD:
             yang_peaks.append(index)
-        break
 
     average_exp /= len(tf_bound)
+    average_sample_cnt /= len(tf_bound)
     print("average_exp: ", average_exp)
+    print("average_sample_cnt: ", average_sample_cnt)
     print("total number of peaks: ", len(peaks))
     print("total number of Yang peaks: ", len(yang_peaks))
 
