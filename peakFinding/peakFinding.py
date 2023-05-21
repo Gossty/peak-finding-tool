@@ -27,6 +27,10 @@ def main():
     parser.add_argument('tag_directory', help="tag directory for analysis")
     parser.add_argument("control", help="control of peak finding")
     parser.add_argument('-style', help='<factor> for TFs; <histone> for histone modifications')
+    parser.add_argument('-o',help='output directory')
+    parser.add_argument('-poisson',help='manually set the threshold for poisson')
+    parser.add_argument('-fold', help='manually set the fold change for peak detection')
+    parser.add_argument('-fragLen',help='manually specify the length of window')
 
     args = parser.parse_args()
 
