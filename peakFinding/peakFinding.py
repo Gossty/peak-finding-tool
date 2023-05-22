@@ -6,7 +6,7 @@ from scipy.stats import poisson
 
 WINDOW_LENGTH = 75
 GENOME_LENGTH = 2*10**9
-THRESHOLD = 1 * 10**(-40)
+THRESHOLD = 1 * 10**(-50)
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 
 # dictionary stores counts for each window for given starting position
@@ -127,7 +127,7 @@ def poisson_filt(tf_bound, sample_counts, input_length):
         average_sample_cnt += sample_counts[index]
         if sample_counts.get(index) == None:
             continue
-        p_value = 1 - (poisson.cdf(sample_counts[index], exp))
+        p_value =  poisson.pmf(sample_counts[index], exp)
         average_p_val += p_value
         if p_value < THRESHOLD:
             peaks.append(index)
@@ -137,6 +137,7 @@ def poisson_filt(tf_bound, sample_counts, input_length):
     print("average_sample_cnt: ", average_sample_cnt)
     print("average p-value: ", average_p_val)
     print("total number of peaks: ", len(peaks))
+    print(peaks[:100])
 
 
     return peaks
