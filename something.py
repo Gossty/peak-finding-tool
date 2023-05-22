@@ -1,4 +1,10 @@
-from scipy.stats import poisson
-for i in range(1000000):
-    p_value = poisson.cdf(100, 0.04)
-print(p_value)
+# from scipy.stats import poisson
+# for i in range(1000000):
+#     p_value = poisson.cdf(100, 0.04)
+# print(p_value)
+
+
+a = [3288575, 3288574, 3288576, 3288579, 3288578, 3288577, 3288580, 3288581, 3288582, 3288584, 3288583, 3288587, 3288586, 3288585, 3288588, 3288609, 3288608, 3288610, 3288611, 3288615, 3288614]
+a.sort()
+print(a[-1] - a[0])
+

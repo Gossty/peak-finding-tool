@@ -6,7 +6,7 @@ from scipy.stats import poisson
 
 WINDOW_LENGTH = 75
 GENOME_LENGTH = 2*10**9
-THRESHOLD = 1 * 10**(-50)
+THRESHOLD = 1 * 10**(-60)
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 
 # dictionary stores counts for each window for given starting position
@@ -41,8 +41,9 @@ def main():
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
 
-    tf_bound = log_fc_filt(sample_counts, control_counts)
-    poisson_filt(tf_bound, sample_counts, input_length)
+    tf_bound = fc_filt(sample_counts, control_counts)
+    tf_bound_filt = max_count_filt(tf_bound, sample_counts)
+    poisson_filt(tf_bound_filt, sample_counts, input_length)
 
 # getting all the tag files for tag directory, filtering for necessary columns
 # returns total number of tags
@@ -93,33 +94,55 @@ def overlap(dictionary, tag, tag_len, strand):
 
 # filtering based of log fold change.
 # tf_bound keeps track of positions where TFs bound based on whether log2 fold change < 4
-def log_fc_filt(sample_counts, control_counts):
+def fc_filt(sample_counts, control_counts):
     tf_bound = []
     for index in sample_counts.keys():
         # check if control has this window
         if control_counts.get(index) == None:
             continue
-        log_value = log2(sample_counts[index] / control_counts[index])
-        if  log_value >= 4:
+        fold_value = sample_counts[index] / control_counts[index]
+        if  fold_value >= 4:
             tf_bound.append(index)
             # tf_bound[index] = log_value
-
+    tf_bound.sort()
     return tf_bound
 
 
 # goes through output from 
-def max_fold_filt(log_dict):
-    keys = list(log_dict.keys())[0]
-    # while
-    pass
+def max_count_filt(tf_bound, sample_counts):
+    tf_bound_filt = []
+    check = tf_bound[0]
+    yang_peak = tf_bound[0]
+    biggest_peak = -1
+    for index in tf_bound:
+
+        if index < check:
+            continue
+        check = index
+        start = index
+        position = start
+        max_dict = dict()
+        for i in range(start, start + (WINDOW_LENGTH * 2) + 1):
+            if sample_counts.get(i) == None:
+                continue   
+            max_dict[i] = sample_counts.get(i)
+        
+        position = max(max_dict)
+        local_max = max(max_dict.values())
+        if biggest_peak < local_max:
+            biggest_peak = local_max
+            yang_peak = position
+        tf_bound_filt.append(position)
+        check += (WINDOW_LENGTH * 2)
+    print("filtering tf_bound by maximum value ",len(tf_bound_filt))
+    print("THE YANG PEAK POGGERS 🥰", yang_peak)
+    print("MAXIMUM TAG COUNT 🔝", biggest_peak)
+    return tf_bound_filt
 
 def poisson_filt(tf_bound, sample_counts, input_length):
     peaks = []
     average_sample_cnt = 0
     average_p_val = 0
-    print("total number of tags", input_length)
-    print("length of sample counts", len(sample_counts))
-    print("length of tf_bound: ", len(tf_bound))
     #lambda for poisson/expected value
     exp = (WINDOW_LENGTH * input_length) / GENOME_LENGTH
     # expected value – shows mean tags for input
@@ -127,7 +150,7 @@ def poisson_filt(tf_bound, sample_counts, input_length):
         average_sample_cnt += sample_counts[index]
         if sample_counts.get(index) == None:
             continue
-        p_value =  poisson.pmf(sample_counts[index], exp)
+        p_value =  1 - poisson.cdf(sample_counts[index], exp)
         average_p_val += p_value
         if p_value < THRESHOLD:
             peaks.append(index)
@@ -138,6 +161,7 @@ def poisson_filt(tf_bound, sample_counts, input_length):
     print("average p-value: ", average_p_val)
     print("total number of peaks: ", len(peaks))
     print(peaks[:100])
+
 
 
     return peaks
