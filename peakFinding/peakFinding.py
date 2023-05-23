@@ -125,7 +125,7 @@ def max_count_filt(tf_bound, sample_counts):
         if index < check:
             continue
         check = index
-        
+
         start = index
         position = start
         max_dict = dict()
@@ -179,7 +179,10 @@ def get_bed(df, array_filt):
     
     df_filt = df['../tests/tagdir/17.tags.tsv']
     #removing all values that are not in array_filt
-    df_filt[df_filt['position'].isin(array_filt)]
+
+    print("before is in: ", len(df_filt))
+
+    df_filt = df_filt[df_filt['position'].isin(array_filt)]
     df_filt = df_filt[['chromosome', 'position']]
 
     #changing the chromosome name
@@ -190,9 +193,8 @@ def get_bed(df, array_filt):
     #create new column with end position
     new_column = [str(int(i) + WINDOW_LENGTH) for i in startings]
     df_filt.insert(2, "end", new_column)
-    print(df_filt.columns)
+    print("after is in method: ", len(df_filt))
     df_filt.columns = ['Chromosome', 'Start', 'End']
-
     # create a bed file
     bf = pybed.BedFrame.from_frame(meta=[], data=df_filt)
     bf.to_file('example.bed')
