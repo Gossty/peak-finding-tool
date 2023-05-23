@@ -3,6 +3,7 @@ import pandas as pd
 import glob 
 from math import log2
 from scipy.stats import poisson
+from fuc import pybed
 
 WINDOW_LENGTH = 75
 GENOME_LENGTH = 2*10**9
@@ -45,6 +46,8 @@ def main():
     tf_bound_filt = max_count_filt(tf_bound, sample_counts)
     poisson_filt(tf_bound_filt, sample_counts, input_length)
 
+    get_bed(sample_data, tf_bound_filt)
+
 # getting all the tag files for tag directory, filtering for necessary columns
 # returns total number of tags
 def gather_data(data_dict, directory):
@@ -55,7 +58,7 @@ def gather_data(data_dict, directory):
         tag = pd.read_csv(tag_file, sep='\t')
         tag.columns = COLUMNS
         # removing unnecesary
-        tag_filt = tag[['position', 'read_len', 'strand']]
+        tag_filt = tag[['chromosome', 'position', 'read_len', 'strand']]
         data_dict[tag_file] = tag_filt
         cnt += len(tag_filt)
     return cnt
@@ -108,17 +111,21 @@ def fc_filt(sample_counts, control_counts):
     return tf_bound
 
 
-# goes through output from 
+# goes through tf_bound and filters to position with max tag count in each window
+# window is defined by WINDOW_LENGTH * 2
+# returns an array of filtered starting positions
 def max_count_filt(tf_bound, sample_counts):
     tf_bound_filt = []
     check = tf_bound[0]
     yang_peak = tf_bound[0]
     biggest_peak = -1
+    # iterating through starting position of tf_bound
     for index in tf_bound:
-
+        # continue iterating until the check
         if index < check:
             continue
         check = index
+        
         start = index
         position = start
         max_dict = dict()
@@ -129,6 +136,7 @@ def max_count_filt(tf_bound, sample_counts):
         
         position = max(max_dict)
         local_max = max(max_dict.values())
+        # figure out the biggest peak
         if biggest_peak < local_max:
             biggest_peak = local_max
             yang_peak = position
@@ -165,6 +173,29 @@ def poisson_filt(tf_bound, sample_counts, input_length):
 
 
     return peaks
+
+def get_bed(df, array_filt):
+    # df[df['A'].isin([3, 6])]
+    
+    df_filt = df['../tests/tagdir/17.tags.tsv']
+    #removing all values that are not in array_filt
+    df_filt[df_filt['position'].isin(array_filt)]
+    df_filt = df_filt[['chromosome', 'position']]
+
+    #changing the chromosome name
+    df_filt.loc[df_filt['chromosome'] == 17, 'chromosome'] = "chr17"
+
+    startings = list(df_filt['position'])
+
+    #create new column with end position
+    new_column = [str(int(i) + WINDOW_LENGTH) for i in startings]
+    df_filt.insert(2, "end", new_column)
+    print(df_filt.columns)
+    df_filt.columns = ['Chromosome', 'Start', 'End']
+
+    # create a bed file
+    bf = pybed.BedFrame.from_frame(meta=[], data=df_filt)
+    bf.to_file('example.bed')
 
 
 main()
