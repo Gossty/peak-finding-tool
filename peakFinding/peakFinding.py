@@ -7,7 +7,8 @@ from fuc import pybed
 
 WINDOW_LENGTH = 75
 GENOME_LENGTH = 2*10**9
-THRESHOLD = 1 * 10**(-60)
+LOCAL_WINDOW = 10000
+THRESHOLD = 1 * 10**(-4)
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 
 # dictionary stores counts for each window for given starting position
@@ -36,16 +37,21 @@ def main():
     args = parser.parse_args()
 
     sample_length = gather_data(sample_data, args.tag_directory)
-    input_length = gather_data(control_data, args.control)
+    control_length = gather_data(control_data, args.control)
 
+    df = sample_data['../tests/tagdir/17.tags.tsv']
+    dict_tags = get_dict_tags(df)
+#
     print("length of sample_length", sample_length)
 
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
 
-    tf_bound = fc_filt(sample_counts, control_counts)
-    tf_bound_filt = max_count_filt(tf_bound, sample_counts)
-    poisson_filter = poisson_filt(tf_bound_filt, sample_counts, input_length)
+    tf_bound = fc_filt(sample_counts, control_counts, sample_length, control_length)
+    max_filt = max_count_filt(tf_bound, sample_counts)
+    poisson_filter = poisson_filt(max_filt, sample_counts, control_length)
+
+    # local_filtered = local_filt(sample_counts, poisson_filter, dict_tags)
 
     get_bed(poisson_filter)
 
@@ -56,7 +62,7 @@ def gather_data(data_dict, directory):
     tag_list = glob.glob(f"{directory}/*.tsv")
     cnt = 0
     for tag_file in tag_list:
-        tag = pd.read_csv(tag_file, sep='\t')
+        tag = pd.read_csv(tag_file, sep='\t', header=None)
         tag.columns = COLUMNS
         # removing unnecesary
         tag_filt = tag[['chromosome', 'position', 'read_len', 'strand']]
@@ -71,6 +77,16 @@ def get_counts(data, dictionary):
     for tag_file, tag_filt in data.items():
         for index, row in tag_filt.iterrows():
             overlap(dictionary, row['position'], row['read_len'], row['strand'])
+
+
+def get_dict_tags(df):    
+    pos_list = list(df['position'])
+
+    pos_dict = dict()
+
+    for index in pos_list:
+        pos_dict[index] = True
+    return pos_dict        
 
 
 # overlap – increments all the values in the dictionary of windows 
@@ -98,28 +114,62 @@ def overlap(dictionary, tag, tag_len, strand):
 
 # filtering based of log fold change.
 # tf_bound keeps track of positions where TFs bound based on whether log2 fold change < 4
-def fc_filt(sample_counts, control_counts):
+def fc_filt(sample_counts, control_counts, sample_length, control_length):
     tf_bound = []
     for index in sample_counts.keys():
         # check if control has this window
         if control_counts.get(index) == None:
             continue
-        fold_value = sample_counts[index] / control_counts[index]
+        fold_value = (sample_counts[index] / sample_length) / (control_counts[index] / control_length)
         if  fold_value >= 4:
             tf_bound.append(index)
             # tf_bound[index] = log_value
     tf_bound.sort()
     return tf_bound
 
+# dictionary for helper method
+def local_filt(sample_counts, tf_bound, dictionary):
+    check = 0
+    start_check = 0
+    loc_density = 0
+    tf_bound_local_filt = []
+
+    for index in tf_bound:
+
+        if check <= 0:
+            loc_density = local_density(index, dictionary)
+            check = 10000
+            start_check = index
+
+        curr_density = sample_counts[index] / WINDOW_LENGTH
+        fold_value = curr_density / loc_density
+        if  fold_value >= 4:
+            tf_bound_local_filt.append(index)
+        
+        check -= (index - start_check)
+        start_check = index
+    print("length of local_filt: ", len(tf_bound_local_filt))
+    return tf_bound_local_filt
+
+
+# calculates a tag density for a 10,000 bp window
+def local_density(index, dictionary):
+    density = 1
+
+    for i in range(index, index + LOCAL_WINDOW + 1):
+        if dictionary.get(i) == None:
+            continue
+        density += 1
+    density /= LOCAL_WINDOW
+    print("this is local density: ", density)
+    return density
 
 # goes through tf_bound and filters to position with max tag count in each window
 # window is defined by WINDOW_LENGTH * 2
 # returns an array of filtered starting positions
 def max_count_filt(tf_bound, sample_counts):
-    tf_bound_filt = []
+    max_filt = []
     check = tf_bound[0]
-    yang_peak = tf_bound[0]
-    biggest_peak = -1
     # iterating through starting position of tf_bound
     for index in tf_bound:
         # continue iterating until the check
@@ -136,42 +186,25 @@ def max_count_filt(tf_bound, sample_counts):
             max_dict[i] = sample_counts.get(i)
         
         position = max(max_dict)
-        local_max = max(max_dict.values())
         # figure out the biggest peak
-        if biggest_peak < local_max:
-            biggest_peak = local_max
-            yang_peak = position
-        tf_bound_filt.append(position)
+        max_filt.append(position)
         check += (WINDOW_LENGTH * 2)
-    print("filtering tf_bound by maximum value ",len(tf_bound_filt))
-    print("THE YANG PEAK POGGERS 🥰", yang_peak)
-    print("MAXIMUM TAG COUNT 🔝", biggest_peak)
-    return tf_bound_filt
 
-def poisson_filt(tf_bound, sample_counts, input_length):
+    return max_filt
+
+def poisson_filt(tf_bound, sample_counts, control_length):
     peaks = []
-    average_sample_cnt = 0
-    average_p_val = 0
-    average_appended_p_val = 0
     #lambda for poisson/expected value
-    exp = (WINDOW_LENGTH * input_length) / GENOME_LENGTH
+    exp = (WINDOW_LENGTH * control_length) / GENOME_LENGTH
     # expected value – shows mean tags for input
     for index in tf_bound:
-        average_sample_cnt += sample_counts[index]
         if sample_counts.get(index) == None:
             continue
         p_value =  1 - poisson.cdf(sample_counts[index], exp)
-        average_p_val += p_value
         if p_value < THRESHOLD:
-            average_appended_p_val += p_value
             peaks.append(index)
 
-    average_sample_cnt /= len(tf_bound)
-    average_p_val /= len(tf_bound)
-    print("average_sample_cnt: ", average_sample_cnt)
-    print("average p-value: ", average_p_val)
-    print("average_appended_p_val ", average_appended_p_val)
-    print("total number of peaks: ", len(peaks))
+    print("total number of peaks in poisson for control: ", len(peaks))
 
 
 
