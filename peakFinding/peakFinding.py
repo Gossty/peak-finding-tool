@@ -38,15 +38,16 @@ def main():
     sample_length = gather_data(sample_data, args.tag_directory)
     input_length = gather_data(control_data, args.control)
 
+    print("length of sample_length", sample_length)
 
     get_counts(sample_data, sample_counts)
     get_counts(control_data, control_counts)
 
     tf_bound = fc_filt(sample_counts, control_counts)
     tf_bound_filt = max_count_filt(tf_bound, sample_counts)
-    poisson_filt(tf_bound_filt, sample_counts, input_length)
+    poisson_filter = poisson_filt(tf_bound_filt, sample_counts, input_length)
 
-    get_bed(sample_data, tf_bound_filt)
+    get_bed(poisson_filter)
 
 # getting all the tag files for tag directory, filtering for necessary columns
 # returns total number of tags
@@ -151,6 +152,7 @@ def poisson_filt(tf_bound, sample_counts, input_length):
     peaks = []
     average_sample_cnt = 0
     average_p_val = 0
+    average_appended_p_val = 0
     #lambda for poisson/expected value
     exp = (WINDOW_LENGTH * input_length) / GENOME_LENGTH
     # expected value – shows mean tags for input
@@ -161,42 +163,35 @@ def poisson_filt(tf_bound, sample_counts, input_length):
         p_value =  1 - poisson.cdf(sample_counts[index], exp)
         average_p_val += p_value
         if p_value < THRESHOLD:
+            average_appended_p_val += p_value
             peaks.append(index)
 
     average_sample_cnt /= len(tf_bound)
     average_p_val /= len(tf_bound)
     print("average_sample_cnt: ", average_sample_cnt)
     print("average p-value: ", average_p_val)
+    print("average_appended_p_val ", average_appended_p_val)
     print("total number of peaks: ", len(peaks))
-    print(peaks[:100])
 
 
 
     return peaks
 
-def get_bed(df, array_filt):
-    # df[df['A'].isin([3, 6])]
-    
-    df_filt = df['../tests/tagdir/17.tags.tsv']
+def get_bed(array_filt):
+
     #removing all values that are not in array_filt
+    df = pd.DataFrame()
+    chromosome = ["chr17" for i in range(len(array_filt))]
+    df.insert(0, "Chromosome", chromosome)
+    df.insert(1, "Start", array_filt)
 
-    print("before is in: ", len(df_filt))
-
-    df_filt = df_filt[df_filt['position'].isin(array_filt)]
-    df_filt = df_filt[['chromosome', 'position']]
-
-    #changing the chromosome name
-    df_filt.loc[df_filt['chromosome'] == 17, 'chromosome'] = "chr17"
-
-    startings = list(df_filt['position'])
+    new_column = [str(int(i) + WINDOW_LENGTH) for i in array_filt]
 
     #create new column with end position
-    new_column = [str(int(i) + WINDOW_LENGTH) for i in startings]
-    df_filt.insert(2, "end", new_column)
-    print("after is in method: ", len(df_filt))
-    df_filt.columns = ['Chromosome', 'Start', 'End']
+    df.insert(2, "End", new_column)
+    print("length of df", len(df))
     # create a bed file
-    bf = pybed.BedFrame.from_frame(meta=[], data=df_filt)
+    bf = pybed.BedFrame.from_frame(meta=[], data=df)
     bf.to_file('example.bed')
 
 
