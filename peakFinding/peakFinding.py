@@ -32,6 +32,7 @@ def main():
     parser.add_argument('-poisson',help='manually set the threshold for poisson')
     parser.add_argument('-fold', help='manually set the fold change for peak detection')
     parser.add_argument('-fragLen',help='manually specify the length of window')
+    parser.add_argument('-L', help='manually set the scope for local filtering')
 
     args = parser.parse_args()
 
