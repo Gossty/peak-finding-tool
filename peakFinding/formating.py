@@ -1,6 +1,5 @@
 import glob 
 import pandas as pd
-from fuc import pybed
 
 
 
@@ -12,32 +11,31 @@ class Formating:
         self.LOCAL_WINDOW = LOCAL_WINDOW
         self.THRESHOLD = THRESHOLD
         self.COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
-
+        self.COLUMNS_FILT = ['chromosome', 'position', 'read_len', 'strand']
 
 
 
 # getting all the tag files for tag directory, filtering for necessary columns
 # returns total number of tags
-    def gather_data(self, data_dict, directory):
+    def gather_data(self, directory):
         tag_list = []
+        total_data = pd.DataFrame(columns=self.COLUMNS_FILT)
         tag_list = glob.glob(f"{directory}/*.tsv")
-        cnt = 0
+
         for tag_file in tag_list:
             tag = pd.read_csv(tag_file, sep='\t', header=None)
             tag.columns = self.COLUMNS
             # removing unnecesary
-            tag_filt = tag[['chromosome', 'position', 'read_len', 'strand']]
-            data_dict[tag_file] = tag_filt
-            cnt += len(tag_filt)
-        return cnt
+            tag_filt = tag[self.COLUMNS_FILT]
+            total_data = pd.concat([total_data, tag_filt])
+        return total_data
 
 
     # runs through all the tags for each sample
     # for each read in the sample updates counts based on overlap
-    def get_counts(self, data, dictionary):
-        for tag_file, tag_filt in data.items():
-            for index, row in tag_filt.iterrows():
-                self.overlap(dictionary, row['position'], row['read_len'], row['strand'])
+    def get_counts(self, dataframe, dictionary):
+        for index, row in dataframe.iterrows():
+            self.overlap(dictionary, row['position'], row['read_len'], row['strand'])
 
 
     def get_dict_tags(self, df):    

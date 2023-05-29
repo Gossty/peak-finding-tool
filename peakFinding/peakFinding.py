@@ -11,65 +11,75 @@ WINDOW_LENGTH = 75
 GENOME_LENGTH = 2*10**9
 LOCAL_WINDOW = 10000
 THRESHOLD = 1 * 10**(-4)
+FOLD_VALUE = 4
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
+COLUMNS_FILT = ['chromosome', 'position', 'read_len', 'strand']
 
 # dictionary stores counts for each window for given starting position
 sample_counts = dict()
 control_counts = dict()
 
-# All the filtered dataframes for each chromosome
-sample_data = dict()
-control_data = dict()
 
 
 
 def main():
 
     ARGS = arg_parser()
-    # formating
+    # formatting 
     formating = Formating(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD)
 
-    sample_length = formating.gather_data(sample_data, ARGS.tag_directory)
-    control_length = formating.gather_data(control_data, ARGS.control)
-    df = sample_data['../tests/tagdir/17.tags.tsv']
-    dict_tags = formating.get_dict_tags(df)
-    print("length of sample_length", sample_length)
+    # All the dataframes filtered by columns for each chromosome
+    sample_df = formating.gather_data( ARGS.tag_directory)
+    control_df = formating.gather_data( ARGS.control)
 
-    formating.get_counts(sample_data, sample_counts)
-    formating.get_counts(control_data, control_counts)
+    # Getting all the counts for windows for sample and control
+    formating.get_counts(sample_df, sample_counts)
+    formating.get_counts(control_df, control_counts)
 
 
-    # filtering
+    # filtering 
     filters = Filters(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD,
-                      sample_length, control_length)
+                      len(sample_df), len(control_df), FOLD_VALUE)
 
 
+    # filtering by fold change sample vs control
     tf_bound = filters.fc_filt(sample_counts, control_counts)
+
+    # filtering double counted peaks
     max_filt = filters.max_count_filt(tf_bound, sample_counts)
+
+    # filtering based on the expected number of peaks in control
     poisson_filter = filters.poisson_filt(max_filt, sample_counts)
 
+    # getting the positions of all tags
+    dict_tags = formating.get_dict_tags(sample_df)
+
+    # filtering by fold change sample vs LOCAL_WINDOW
     local_filtered = filters.local_filt(sample_counts, poisson_filter, dict_tags)
 
+    # poisson by expected numvber of peaks in LOCAL_WINDOW
     another_poisson = filters.poisson_filt(local_filtered, sample_counts)
 
+    # 
+    # # # create a plot to see the p-values
+    # # another_poisson.sort()
+    # # array_p_value = []
+    # # for index in another_poisson: 
+    # #     array_p_value.append(sample_counts[index])
+    # # exp = (WINDOW_LENGTH * control_length) / GENOME_LENGTH
 
-    # # create a plot to see the p-values
-    # another_poisson.sort()
-    # array_p_value = []
-    # for index in another_poisson: 
-    #     array_p_value.append(sample_counts[index])
-    # exp = (WINDOW_LENGTH * control_length) / GENOME_LENGTH
-
-    # y = poisson.cdf(array_p_value, mu=exp)
-    # print(max(y))
-    # plt.scatter(array_p_value, y)
+    # # y = poisson.cdf(array_p_value, mu=exp)
+    # # print(max(y))
+    # # plt.scatter(array_p_value, y)
 
         
-    # plt.show()
+    # # plt.show()
 
+
+    # converting to bed file for viewing in IGV
     get_bed(another_poisson)
 
-
+# getting user input
 def arg_parser():
     parser = argparse.ArgumentParser(
         prog='peakFinding',
@@ -88,6 +98,7 @@ def arg_parser():
     return parser.parse_args()
 
 
+# building a bed file using pybed library
 def get_bed(array_filt):
 
     #removing all values that are not in array_filt
@@ -104,6 +115,7 @@ def get_bed(array_filt):
     # create a bed file
     bf = pybed.BedFrame.from_frame(meta=[], data=df)
     bf.to_file('example.bed')
+
 
 
 main()
