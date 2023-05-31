@@ -19,9 +19,9 @@ class Filters():
 
     # filtering based of fold change.
     # tf_bound keeps track of positions where TFs bound based on whether fold change < 4
-    def fc_filt(self, sample_counts, control_counts):
+    def fc_filt(self, sample_counts, control_counts, peaks_arr):
         tf_bound = []
-        for index in sample_counts.keys():
+        for index in peaks_arr:
             # check if control has this window
             if control_counts.get(index) == None:
                 continue
@@ -41,6 +41,7 @@ class Filters():
     # returns an array of filtered starting positions
     def max_count_filt(self, tf_bound, sample_counts):
         max_filt = []
+
         check = tf_bound[0]
         # iterating through starting position of tf_bound
         for index in tf_bound:
@@ -79,7 +80,6 @@ class Filters():
         loc_density = 0     
 
         tf_bound_local_filt = []
-
         for index in tf_bound:
 
             if check <= 0:
