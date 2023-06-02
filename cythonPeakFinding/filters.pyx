@@ -2,7 +2,15 @@ from scipy.stats import poisson
 import numpy as np
 
 # Class containing all filters used in the peakFinding tool
-class Filters():
+cdef class Filters:
+    cdef int WINDOW_LENGTH
+    cdef int GENOME_LENGTH
+    cdef int LOCAL_WINDOW
+    cdef double THRESHOLD
+    cdef int sample_length
+    cdef int control_length
+    cdef double FOLD_VALUE
+
 
     # constructor for global values
     def __init__(self, WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD,
@@ -21,6 +29,7 @@ class Filters():
     # tf_bound keeps track of positions where TFs bound based on whether fold change < 4
     def fc_filt(self, sample_counts, control_counts, peaks_arr):
         tf_bound = []
+        cdef double fold_value
         for index in peaks_arr:
             # check if control has this window
             if control_counts.get(index) == None:
@@ -41,6 +50,9 @@ class Filters():
     # returns an array of filtered starting positions
     def max_count_filt(self, tf_bound, sample_counts):
         max_filt = []
+        cdef int check
+        cdef int start
+        cdef int position
 
         check = tf_bound[0]
         # iterating through starting position of tf_bound
@@ -49,7 +61,7 @@ class Filters():
             # continue iterating until the check
             if index < check:
                 continue
-            
+
             check = index       # check keeps track of the current window
             start = index       # starting value of for loop below
 
@@ -75,10 +87,15 @@ class Filters():
 
     # dictionary for helper method
     def local_filt(self, sample_counts, tf_bound, dictionary):
+        cdef int check
+        cdef int start_check
+        cdef int prev_index
+        cdef double loc_density
         check = 0           
         start_check = 0    
-        loc_density = 0     
+        loc_density = 0.0     
         tf_bound_local_filt = []
+
         for index in tf_bound:
 
             if check <= 0:
@@ -105,6 +122,7 @@ class Filters():
         
         # calculates density based on LOCAL_WINDOW
     def local_density(self, index, dictionary):
+        cdef double density
         density = 1
 
         # iterates through the current window
@@ -120,8 +138,11 @@ class Filters():
     # by the given threshold
     def poisson_filt(self, tf_bound, sample_counts):
         peaks = []
+        cdef double p_value
+        cdef double exp
 
         #lambda for poisson/expected value
+        
         exp = (self.WINDOW_LENGTH * self.control_length) / self.GENOME_LENGTH
 
         for index in tf_bound:

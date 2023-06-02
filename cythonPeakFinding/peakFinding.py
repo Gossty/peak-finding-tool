@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
-import glob 
-from scipy.stats import poisson
+
+
 from fuc import pybed
 import matplotlib.pyplot as plt
 from filters import *
@@ -32,7 +32,6 @@ def main():
     # All the dataframes filtered by columns for each chromosome
     sample_df = formating.gather_data( ARGS.tag_directory)
     control_df = formating.gather_data( ARGS.control)
-
     # Getting all the counts for windows for sample and control
     formating.get_counts(sample_df, sample_counts)
     formating.get_counts(control_df, control_counts)
@@ -79,21 +78,6 @@ def main():
     # false_peaks(sample_counts, control_counts, 34000123)
 
     
-    # create a plot to see the p-values
-    # array_p_value = []
-    # for index in array_for_graph: 
-    #     array_p_value.append(sample_counts[index])
-    # exp = (WINDOW_LENGTH * len(control_df)) / GENOME_LENGTH
-
-    # y = poisson.cdf(array_p_value, mu=exp)
-    # print(max(y))
-    # plt.scatter(array_p_value, y)
-    x = list(range(0, 151))
-    bar_chart = [0] * 151
-    for index in array_for_graph:
-        bar_chart[sample_counts[index]] +=1
-    plt.bar(x, bar_chart)
-    plt.show()
 
 
     # converting to bed file for viewing in IGV

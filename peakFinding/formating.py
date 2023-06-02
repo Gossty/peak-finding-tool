@@ -1,6 +1,6 @@
 import glob 
 import pandas as pd
-
+import numpy as np
 
 
 class Formating:
@@ -34,8 +34,8 @@ class Formating:
     # runs through all the tags for each sample
     # for each read in the sample updates counts based on overlap
     def get_counts(self, dataframe, dictionary):
-        for index, row in dataframe.iterrows():
-            self.overlap(dictionary, row['position'], row['read_len'], row['strand'])
+        overlap_vectorized = np.vectorize(self.overlap)
+        overlap_vectorized(dataframe['position'], dataframe['read_len'], dataframe['strand'], dictionary)
 
 
     def get_dict_tags(self, df):    
@@ -50,22 +50,23 @@ class Formating:
 
     # overlap – increments all the values in the dictionary of windows 
     # tag – start index of tag, tag_len – length of tag, dictionary – read
-    def overlap(self, dictionary, tag, tag_len, strand):
-            center = int(tag + tag_len / 2)
+    def overlap(self, tag, tag_len, strand, dictionary):
+
+        center = int(tag + tag_len / 2)
+        # the range of for loop is representing the starting positions of the window
+        if strand: # checks for strand direction
+            for x in range(center - self.WINDOW_LENGTH, center + 1):
+                # checking if the position exists; if yes – increment
+                if dictionary.get(x) == None:
+                    dictionary[x] = 1
+                else:
+                    dictionary[x] += 1
+        else:
             # the range of for loop is representing the starting positions of the window
-            if strand: # checks for strand direction
-                for x in range(center - self.WINDOW_LENGTH, center + 1):
-                    # checking if the position exists; if yes – increment
-                    if dictionary.get(x) == None:
-                        dictionary[x] = 1
-                    else:
-                        dictionary[x] += 1
-            else:
-                # the range of for loop is representing the starting positions of the window
-                # range is reversed
-                for x in range(center + self.WINDOW_LENGTH, center + 1, -1):
-                    # checking if the position exists; if yes – increment
-                    if dictionary.get(x) == None:
-                        dictionary[x] = 1
-                    else:
-                        dictionary[x] += 1
+            # range is reversed
+            for x in range(center + self.WINDOW_LENGTH, center + 1, -1):
+                # checking if the position exists; if yes – increment
+                if dictionary.get(x) == None:
+                    dictionary[x] = 1
+                else:
+                    dictionary[x] += 1
