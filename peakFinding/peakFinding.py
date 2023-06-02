@@ -1,78 +1,77 @@
 import argparse
 import pandas as pd
-import glob 
-from scipy.stats import poisson
-from fuc import pybed
 import matplotlib.pyplot as plt
 from filters import *
 from formating import *
 import sys
 
-WINDOW_LENGTH = 75
-GENOME_LENGTH = 2*10**9
-LOCAL_WINDOW = 10000
-THRESHOLD = 1 * 10**(-4)
-FOLD_VALUE = 4
-COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
-COLUMNS_FILT = ['chromosome', 'position', 'read_len', 'strand']
-OUT_FILE='peak.txt'
 
 # dictionary stores counts for each window for given starting position
 sample_counts = dict()
 control_counts = dict()
+
+# getting user input
+def arg_parser():
+    parser = argparse.ArgumentParser(
+        prog='peakFinding',
+        description='Finds Peaks in the provided tag directory'
+    )
+
+    parser.add_argument('tag_directory', help="tag directory for analysis")
+    parser.add_argument("-control", help="control of peak finding")
+    parser.add_argument('-style', help='<factor> for TFs; <histone> for histone modifications')
+    parser.add_argument('-o',help='output directory')
+    parser.add_argument('-poisson',help='manually set the threshold for poisson')
+    parser.add_argument('-fold', help='manually set the fold change for peak detection')
+    parser.add_argument('-fragLen',help='manually specify the length of window')
+    parser.add_argument('-L', help='manually set the scope for local filtering')
+
+    return parser.parse_args()
+
+
+ARGS = arg_parser()
+
+WINDOW_LENGTH = 75 if ARGS.fragLen == None else ARGS.fragLen
+GENOME_LENGTH = 2*10**9
+LOCAL_WINDOW = 10000 if ARGS.L == None else ARGS.L
+THRESHOLD = 1 * 10**(-4) if ARGS.poisson == None else ARGS.poisson
+FOLD_VALUE = 4 if ARGS.fold == None else ARGS.fold
+COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
+COLUMNS_FILT = ['chromosome', 'position', 'read_len', 'strand']
+OUT_FILE='peak.txt' if ARGS.o == None else ARGS.o
 
 
 
 
 def main():
     flag= 0
-    ARGS = arg_parser()
     #Updating the values based user input
     if hasattr(ARGS,"tag_directory")==False:
         raise Exception("Please provide tag_directory. Type 'peakFinding -help' for the usage of this program")
     
-    if hasattr(ARGS,"control"):
-        flag = 1
+    flag = 0 if ARGS.control == None else 1
     
     #-style is not useful at this stage since histone mode is not implemented
-    if hasattr(ARGS,'o'):
-        OUT_FILE= ARGS.o
-    
-    if hasattr(ARGS,'poisson'):
-        THRESHOLD= float(ARGS.poisson)
-    
-    if hasattr(ARGS,'fold'):
-        FOLD_VALUE= float(ARGS.fold)
-
-    if hasattr(ARGS,'fraglen'):
-        WINDOW_LENGTH= int(ARGS.fraglen)
-    
-    if hasattr(ARGS,'L'):
-        LOCAL_WINDOW= ARGS.L
     
     # formatting 
     formating = Formating(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD)
 
     # All the dataframes filtered by columns for each chromosome
     sample_df = formating.gather_data( ARGS.tag_directory)
-    control_df = formating.gather_data( ARGS.control)
 
     # Getting all the counts for windows for sample and control
     formating.get_counts(sample_df, sample_counts)
-    formating.get_counts(control_df, control_counts)
-
-
-    # filtering 
-    filters = Filters(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD,
-                      len(sample_df), len(control_df), FOLD_VALUE)
-
 
     sorted_positions = list(sample_counts.keys())
     sorted_positions.sort()
 
     if flag==0:
+        # filtering 
+        filters = Filters(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD,
+                      len(sample_df), len(sample_df), FOLD_VALUE)
+
         # filtering double counted peaks
-        peaks_output= filters.max_count_filt(sorted_positions,sample_counts)
+        peaks_output = filters.max_count_filt(sorted_positions, sample_counts)
         array_for_graph = peaks_output
         PUTATIVE_PEAKS = len(peaks_output)
 
@@ -83,7 +82,23 @@ def main():
         peaks_output = filters.local_filt(sample_counts, peaks_output, dict_tags)
         PUTATIVE_BY_LOC = len(peaks_output)
 
+        peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+        peaks_output.sort()
+        peak_stats(peaks_output, sample_counts, sample_df, ARGS, 
+                   PUTATIVE_PEAKS, PUTATIVE_BY_LOC, OUT_FILE)
+
+
     else:
+        
+        # All the dataframes filtered by columns for each chromosome
+        control_df = formating.gather_data( ARGS.control)
+
+        # Getting all the counts for windows for sample and control
+        formating.get_counts(control_df, control_counts)
+
+        filters = Filters(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD,
+                      len(sample_df), len(control_df), FOLD_VALUE)
+
         # filtering double counted peaks
         peaks_output = filters.max_count_filt(sorted_positions, sample_counts)
         array_for_graph = peaks_output
@@ -93,6 +108,9 @@ def main():
         peaks_output = filters.fc_filt(sample_counts, control_counts, peaks_output)
         PUTATIVE_BY_INPUT = len(peaks_output)
 
+        # poisson by expected numvber of peaks in LOCAL_WINDOW
+        peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+
         # getting the positions of all tags
         dict_tags = formating.get_dict_tags(sample_df)
 
@@ -100,47 +118,31 @@ def main():
         peaks_output = filters.local_filt(sample_counts, peaks_output, dict_tags)
         PUTATIVE_BY_LOC = len(peaks_output)
 
-        # poisson by expected numvber of peaks in LOCAL_WINDOW
-        peaks_output = filters.poisson_filt(peaks_output, sample_counts)
-
         # filtering based on the expected number of peaks in control
         peaks_output = filters.poisson_filt(peaks_output, sample_counts)
-
-
-    peaks_output.sort()
-
-
-    if flag==0:
-        peak_stats(peaks_output, sample_counts,sample_df)
-    else:
+        peaks_output.sort()
         peak_stats(peaks_output, sample_counts, sample_df, ARGS, 
-                   PUTATIVE_PEAKS, PUTATIVE_BY_INPUT, PUTATIVE_BY_LOC, OUT_FILE , sample_df)
+                   PUTATIVE_PEAKS, PUTATIVE_BY_LOC, OUT_FILE, PUTATIVE_BY_INPUT,sample_df)
 
-    # false_peaks(sample_counts, control_counts, 34000123)
+
+
+    # false_peaks(sample_counts, control_counts, 34000123, WINDOW_LENGTH)
 
     
-    # create a plot to see the p-values
-    # array_p_value = []
-    # for index in array_for_graph: 
-    #     array_p_value.append(sample_counts[index])
-    # exp = (WINDOW_LENGTH * len(control_df)) / GENOME_LENGTH
 
-    # y = poisson.cdf(array_p_value, mu=exp)
-    # print(max(y))
-    # plt.scatter(array_p_value, y)
-    x = list(range(0, 151))
-    bar_chart = [0] * 151
-    for index in array_for_graph:
-        bar_chart[sample_counts[index]] +=1
-    plt.bar(x, bar_chart)
-    plt.show()
+    # x = list(range(0, 151))
+    # bar_chart = [0] * 151
+    # for index in array_for_graph:
+    #     bar_chart[sample_counts[index]] +=1
+    # plt.bar(x, bar_chart)
+    # plt.show()
 
 
     # converting to bed file for viewing in IGV
     get_bed(peaks_output)
 
 
-def false_peaks(sample_counts, control_counts, position):
+def false_peaks(sample_counts, control_counts, position, WINDOW_LENGTH):
     cnt = 0
     for index in range(position, position + WINDOW_LENGTH * 2 + 1):
         if sample_counts.get(index) == None:
@@ -153,7 +155,9 @@ def false_peaks(sample_counts, control_counts, position):
         print("No windows?")
 
 def peak_stats(peaks_output, sample_counts, sample_df, input,
-               putative_peaks, putative_by_input, putative_by_loc, file_path,control_df=-1):
+               putative_peaks, putative_by_loc, file_path, putative_by_input=-1, control_df=-1):
+
+    
     total_peaks = len(peaks_output)
     peak_size = WINDOW_LENGTH
     minimum_distance_peaks = GENOME_LENGTH
@@ -167,13 +171,12 @@ def peak_stats(peaks_output, sample_counts, sample_df, input,
     tags_per_bp = 0
 
     if type(control_df) == 'DataFrame':
-        tags_per_bp = len(sample_df) / GENOME_LENGTH
-    else:
         tags_per_bp = len(control_df) / GENOME_LENGTH
+    else:
+        tags_per_bp = len(sample_df) / GENOME_LENGTH
     
     exp_tags_per_peak = WINDOW_LENGTH * tags_per_bp
 
-    max_tags_per_bp = 1.0
 
     tags_for_normalization = len(sample_df)
     command = ' '.join(sys.argv)
@@ -232,23 +235,7 @@ def peak_stats(peaks_output, sample_counts, sample_df, input,
     # Close the file
     file.close()
 
-# getting user input
-def arg_parser():
-    parser = argparse.ArgumentParser(
-        prog='peakFinding',
-        description='Finds Peaks in the provided tag directory'
-    )
 
-    parser.add_argument('tag_directory', help="tag directory for analysis")
-    parser.add_argument("control", help="control of peak finding")
-    parser.add_argument('-style', help='<factor> for TFs; <histone> for histone modifications')
-    parser.add_argument('-o',help='output directory')
-    parser.add_argument('-poisson',help='manually set the threshold for poisson')
-    parser.add_argument('-fold', help='manually set the fold change for peak detection')
-    parser.add_argument('-fragLen',help='manually specify the length of window')
-    parser.add_argument('-L', help='manually set the scope for local filtering')
-
-    return parser.parse_args()
 
 
 # building a bed file using pybed library
@@ -264,11 +251,16 @@ def get_bed(array_filt):
 
     #create new column with end position
     df.insert(2, "End", new_column)
-    print("length of df", len(df))
-    # create a bed file
-    bf = pybed.BedFrame.from_frame(meta=[], data=df)
-    bf.to_file('example.bed')
 
+    # create a bed file
+    file = open(f'output.bed', 'w')
+    with file as f:
+        df.apply(write_row, args=(file,), axis=1)
+
+def write_row(row, file):
+    
+    file.write(f"{row['Chromosome']}\t{row['Start']}\t{row['End']}")
+    file.write('\n')
 
 
 

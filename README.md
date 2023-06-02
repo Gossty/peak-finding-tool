@@ -6,16 +6,16 @@ This repository is used to find peaks in a provided tag directory. It takes as i
 ## Usage
 
 ```
-python peakFinding.py [tag_directory] [control_directory] [options]
+python peakFinding.py [tag_directory] [options]
 ```
 
 Optional parameters:
 ```
-    [-style <factor/histone>] [-o <output_directory>] [-poisson <threshold>] [-fold <fold_change>] [-fragLen <window_length>]
+    [-control <control_directory>][-style <factor/histone>] [-o <output_directory>] [-poisson <threshold>] [-fold <fold_change>] [-fragLen <window_length>]
 ```
 
 - `tag_directory`: Path to the tag directory containing the tag files for analysis.
-- `control_directory`: Path to the control directory for peak finding.
+- `-control`: (optional) Path to the control directory for peak finding.
 - `-style <factor/histone>` (optional): Specify the style. Use `<factor>` for TFs or `<histone>` for histone modifications.
 - `-o <output_directory>` (optional): Specify the output directory for the results. If not provided, the results will be saved to the current directory.
 - `-poisson <threshold>` (optional): Manually set the threshold for the Poisson filter. Default is 1e-60.
