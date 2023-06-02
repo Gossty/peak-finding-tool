@@ -15,6 +15,7 @@ THRESHOLD = 1 * 10**(-4)
 FOLD_VALUE = 4
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 COLUMNS_FILT = ['chromosome', 'position', 'read_len', 'strand']
+OUT_FILE='peak.txt'
 
 # dictionary stores counts for each window for given starting position
 sample_counts = dict()
@@ -24,8 +25,31 @@ control_counts = dict()
 
 
 def main():
-
+    flag= 0
     ARGS = arg_parser()
+    #Updating the values based user input
+    if hasattr(ARGS,"tag_directory")==False:
+        raise Exception("Please provide tag_directory. Type 'peakFinding -help' for the usage of this program")
+    
+    if hasattr(ARGS,"control"):
+        flag = 1
+    
+    #-style is not useful at this stage since histone mode is not implemented
+    if hasattr(ARGS,'o'):
+        OUT_FILE= ARGS.o
+    
+    if hasattr(ARGS,'poisson'):
+        THRESHOLD= float(ARGS.poisson)
+    
+    if hasattr(ARGS,'fold'):
+        FOLD_VALUE= float(ARGS.fold)
+
+    if hasattr(ARGS,'fraglen'):
+        WINDOW_LENGTH= int(ARGS.fraglen)
+    
+    if hasattr(ARGS,'L'):
+        LOCAL_WINDOW= ARGS.L
+    
     # formatting 
     formating = Formating(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD)
 
@@ -45,36 +69,52 @@ def main():
 
     sorted_positions = list(sample_counts.keys())
     sorted_positions.sort()
-    # filtering double counted peaks
-    peaks_output = filters.max_count_filt(sorted_positions, sample_counts)
-    array_for_graph = peaks_output
-    PUTATIVE_PEAKS = len(peaks_output)
 
-    # filtering by fold change sample vs control
-    peaks_output = filters.fc_filt(sample_counts, control_counts, peaks_output)
-    PUTATIVE_BY_INPUT = len(peaks_output)
+    if flag==0:
+        # filtering double counted peaks
+        peaks_output= filters.max_count_filt(sorted_positions,sample_counts)
+        array_for_graph = peaks_output
+        PUTATIVE_PEAKS = len(peaks_output)
 
-    # getting the positions of all tags
-    dict_tags = formating.get_dict_tags(sample_df)
+        # getting the positions of all tags
+        dict_tags = formating.get_dict_tags(sample_df)
 
-    # filtering by fold change sample vs LOCAL_WINDOW
-    peaks_output = filters.local_filt(sample_counts, peaks_output, dict_tags)
-    PUTATIVE_BY_LOC = len(peaks_output)
+        # filtering by fold change sample vs LOCAL_WINDOW
+        peaks_output = filters.local_filt(sample_counts, peaks_output, dict_tags)
+        PUTATIVE_BY_LOC = len(peaks_output)
 
-    # poisson by expected numvber of peaks in LOCAL_WINDOW
-    peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+    else:
+        # filtering double counted peaks
+        peaks_output = filters.max_count_filt(sorted_positions, sample_counts)
+        array_for_graph = peaks_output
+        PUTATIVE_PEAKS = len(peaks_output)
 
+        # filtering by fold change sample vs control
+        peaks_output = filters.fc_filt(sample_counts, control_counts, peaks_output)
+        PUTATIVE_BY_INPUT = len(peaks_output)
 
+        # getting the positions of all tags
+        dict_tags = formating.get_dict_tags(sample_df)
 
-    # filtering based on the expected number of peaks in control
-    peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+        # filtering by fold change sample vs LOCAL_WINDOW
+        peaks_output = filters.local_filt(sample_counts, peaks_output, dict_tags)
+        PUTATIVE_BY_LOC = len(peaks_output)
 
+        # poisson by expected numvber of peaks in LOCAL_WINDOW
+        peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+
+        # filtering based on the expected number of peaks in control
+        peaks_output = filters.poisson_filt(peaks_output, sample_counts)
 
 
     peaks_output.sort()
 
-    peak_stats(peaks_output, sample_counts, sample_df, ARGS, 
-               PUTATIVE_PEAKS, PUTATIVE_BY_INPUT, PUTATIVE_BY_LOC, sample_df)
+
+    if flag==0:
+        peak_stats(peaks_output, sample_counts,sample_df)
+    else:
+        peak_stats(peaks_output, sample_counts, sample_df, ARGS, 
+                   PUTATIVE_PEAKS, PUTATIVE_BY_INPUT, PUTATIVE_BY_LOC, OUT_FILE , sample_df)
 
     # false_peaks(sample_counts, control_counts, 34000123)
 
@@ -112,9 +152,8 @@ def false_peaks(sample_counts, control_counts, position):
     if cnt >= WINDOW_LENGTH * 2:
         print("No windows?")
 
-
 def peak_stats(peaks_output, sample_counts, sample_df, input,
-               putative_peaks, putative_by_input, putative_by_loc, control_df=-1):
+               putative_peaks, putative_by_input, putative_by_loc, file_path,control_df=-1):
     total_peaks = len(peaks_output)
     peak_size = WINDOW_LENGTH
     minimum_distance_peaks = GENOME_LENGTH
@@ -152,8 +191,10 @@ def peak_stats(peaks_output, sample_counts, sample_df, input,
 
     ip_efficiency = (tags_in_peaks / total_tags) * 100
 
-    file_path = f'peaks.txt'
-    file = open(file_path, 'w')
+    try:
+        file = open(file_path, 'w')
+    except FileNotFoundError:
+        print("The given output path is invalid")
 
     # Write content to the file
     file.write('# YSY Peaks \n')
@@ -190,12 +231,6 @@ def peak_stats(peaks_output, sample_counts, sample_df, input,
 
     # Close the file
     file.close()
-
-    
-
-
-
-
 
 # getting user input
 def arg_parser():
