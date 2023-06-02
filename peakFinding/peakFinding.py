@@ -19,18 +19,15 @@ def arg_parser():
 
     parser.add_argument('tag_directory', help="tag directory for analysis")
     parser.add_argument("-control", help="control of peak finding")
-    parser.add_argument('-style', help='<factor> for TFs; <histone> for histone modifications')
     parser.add_argument('-o',help='output directory')
     parser.add_argument('-poisson',help='manually set the threshold for poisson')
     parser.add_argument('-fold', help='manually set the fold change for peak detection')
     parser.add_argument('-fragLen',help='manually specify the length of window')
     parser.add_argument('-L', help='manually set the scope for local filtering')
-
     return parser.parse_args()
 
 
 ARGS = arg_parser()
-
 WINDOW_LENGTH = 75 if ARGS.fragLen == None else ARGS.fragLen
 GENOME_LENGTH = 2*10**9
 LOCAL_WINDOW = 10000 if ARGS.L == None else ARGS.L
@@ -38,7 +35,7 @@ THRESHOLD = 1 * 10**(-4) if ARGS.poisson == None else ARGS.poisson
 FOLD_VALUE = 4 if ARGS.fold == None else ARGS.fold
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 COLUMNS_FILT = ['chromosome', 'position', 'read_len', 'strand']
-OUT_FILE='peak.txt' if ARGS.o == None else ARGS.o
+OUT_DIRECTORY='/' if ARGS.o == None else ARGS.o
 
 
 
@@ -51,7 +48,6 @@ def main():
     
     flag = 0 if ARGS.control == None else 1
     
-    #-style is not useful at this stage since histone mode is not implemented
     
     # formatting 
     formating = Formating(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD)
@@ -85,7 +81,7 @@ def main():
         peaks_output = filters.poisson_filt(peaks_output, sample_counts)
         peaks_output.sort()
         peak_stats(peaks_output, sample_counts, sample_df, ARGS, 
-                   PUTATIVE_PEAKS, PUTATIVE_BY_LOC, OUT_FILE)
+                   PUTATIVE_PEAKS, PUTATIVE_BY_LOC, OUT_DIRECTORY)
 
 
     else:
@@ -122,11 +118,8 @@ def main():
         peaks_output = filters.poisson_filt(peaks_output, sample_counts)
         peaks_output.sort()
         peak_stats(peaks_output, sample_counts, sample_df, ARGS, 
-                   PUTATIVE_PEAKS, PUTATIVE_BY_LOC, OUT_FILE, PUTATIVE_BY_INPUT,sample_df)
+                   PUTATIVE_PEAKS, PUTATIVE_BY_LOC, OUT_DIRECTORY, PUTATIVE_BY_INPUT,sample_df)
 
-
-
-    # false_peaks(sample_counts, control_counts, 34000123, WINDOW_LENGTH)
 
     
 
@@ -139,20 +132,9 @@ def main():
 
 
     # converting to bed file for viewing in IGV
-    get_bed(peaks_output)
+    get_bed(peaks_output, OUT_DIRECTORY)
 
 
-def false_peaks(sample_counts, control_counts, position, WINDOW_LENGTH):
-    cnt = 0
-    for index in range(position, position + WINDOW_LENGTH * 2 + 1):
-        if sample_counts.get(index) == None:
-            cnt += 1
-        print(f"""position: {index}, 
-        sample: {sample_counts[index]}, control: {control_counts[index]}, 
-        fold_change: {sample_counts[index] / control_counts[index]}""")
-
-    if cnt >= WINDOW_LENGTH * 2:
-        print("No windows?")
 
 def peak_stats(peaks_output, sample_counts, sample_df, input,
                putative_peaks, putative_by_loc, file_path, putative_by_input=-1, control_df=-1):
@@ -195,7 +177,7 @@ def peak_stats(peaks_output, sample_counts, sample_df, input,
     ip_efficiency = (tags_in_peaks / total_tags) * 100
 
     try:
-        file = open(file_path, 'w')
+        file = open(f'.{file_path}/peaks.txt', 'w')
     except FileNotFoundError:
         print("The given output path is invalid")
 
@@ -231,7 +213,7 @@ def peak_stats(peaks_output, sample_counts, sample_df, input,
     file.write(f'#  \n')
 
     file.write(f'# cmd = {command} \n')
-
+    print(f"peaks.txt output goes to this directory: {file_path}")
     # Close the file
     file.close()
 
@@ -239,7 +221,7 @@ def peak_stats(peaks_output, sample_counts, sample_df, input,
 
 
 # building a bed file using pybed library
-def get_bed(array_filt):
+def get_bed(array_filt, OUT_DIRECTORY):
 
     #removing all values that are not in array_filt
     df = pd.DataFrame()
@@ -253,15 +235,15 @@ def get_bed(array_filt):
     df.insert(2, "End", new_column)
 
     # create a bed file
-    file = open(f'output.bed', 'w')
+    file = open(f'.{OUT_DIRECTORY}/peaks.bed', 'w')
     with file as f:
         df.apply(write_row, args=(file,), axis=1)
+
+    print(f"peaks.bed output goes to this directory: {OUT_DIRECTORY}")
 
 def write_row(row, file):
     
     file.write(f"{row['Chromosome']}\t{row['Start']}\t{row['End']}")
     file.write('\n')
-
-
 
 main()

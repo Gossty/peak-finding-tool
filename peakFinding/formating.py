@@ -24,6 +24,7 @@ class Formating:
 
         for tag_file in tag_list:
             tag = pd.read_csv(tag_file, sep='\t', header=None)
+            print(f"Gathering tags from {tag_file}")
             tag.columns = self.COLUMNS
             # removing unnecesary
             tag_filt = tag[self.COLUMNS_FILT]
@@ -34,6 +35,7 @@ class Formating:
     # runs through all the tags for each sample
     # for each read in the sample updates counts based on overlap
     def get_counts(self, dataframe, dictionary):
+        print("Getting counts...")
         overlap_vectorized = np.vectorize(self.overlap)
         overlap_vectorized(dataframe['position'], dataframe['read_len'], dataframe['strand'], dictionary)
 
