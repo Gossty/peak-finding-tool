@@ -120,7 +120,6 @@ class Filters():
     # by the given threshold
     def poisson_filt(self, tf_bound, sample_counts, tags_in_peaks=None):
         peaks = []
-
         #lambda for poisson/expected value
         exp = (self.WINDOW_LENGTH * self.control_length) / self.GENOME_LENGTH
 
@@ -134,8 +133,10 @@ class Filters():
             # checking p-value past threshold and adding to array
             if p_value < self.THRESHOLD:
                 peaks.append(index)
-                if tags_in_peaks != None:
+                if tags_in_peaks is not None:
                     tags_in_peaks += sample_counts[index]
-
+        if tags_in_peaks is not None:
+            return peaks, tags_in_peaks
+        
         return peaks
 

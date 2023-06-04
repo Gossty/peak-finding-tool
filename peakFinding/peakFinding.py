@@ -89,7 +89,8 @@ def main():
             peaks_output = filters.local_filt(sample_counts, peaks_output, dict_tags)
             putative_by_loc += len(peaks_output)
 
-            peaks_output = filters.poisson_filt(peaks_output, sample_counts, tags_in_peaks)
+            peaks_output, tags_in_peaks = filters.poisson_filt(peaks_output, sample_counts, tags_in_peaks)
+
             peaks_output.sort()
             total_output[chromosome] = peaks_output
 
@@ -132,8 +133,7 @@ def main():
             putative_by_input += len(peaks_output)
 
             # poisson by expected numvber of peaks in LOCAL_WINDOW
-            peaks_output = filters.poisson_filt(peaks_output, sample_counts, 
-                                            tags_in_peaks=tags_in_peaks)
+            peaks_output = filters.poisson_filt(peaks_output, sample_counts)
 
             # getting the positions of all tags
             dict_tags = formating.get_dict_tags(chr_df)
@@ -143,7 +143,8 @@ def main():
             putative_by_loc += len(peaks_output)
 
             # filtering based on the expected number of peaks in control
-            peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+            peaks_output, tags_in_peaks = filters.poisson_filt(peaks_output, 
+                                                  sample_counts, tags_in_peaks)
             peaks_output.sort()
             total_output[chromosome] = peaks_output
     
