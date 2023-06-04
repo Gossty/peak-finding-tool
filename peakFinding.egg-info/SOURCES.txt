@@ -1,0 +1,14 @@
+LICENSE
+README.md
+setup.py
+peakFinding/__init__.py
+peakFinding/filters.py
+peakFinding/formating.py
+peakFinding/peakFinding.py
+peakFinding/version.py
+peakFinding.egg-info/PKG-INFO
+peakFinding.egg-info/SOURCES.txt
+peakFinding.egg-info/dependency_links.txt
+peakFinding.egg-info/entry_points.txt
+peakFinding.egg-info/requires.txt
+peakFinding.egg-info/top_level.txt

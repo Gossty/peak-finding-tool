@@ -17,7 +17,7 @@ class Formating:
 
 # getting all the tag files for tag directory, filtering for necessary columns
 # returns total number of tags
-    def gather_data(self, directory, total_dict):
+    def gather_data(self, directory):
         tag_list = []
         total_data = pd.DataFrame(columns=self.COLUMNS_FILT)
         tag_list = glob.glob(f"{directory}/*.tsv")
@@ -25,35 +25,34 @@ class Formating:
         for tag_file in tag_list:
             tag = pd.read_csv(tag_file, sep='\t', header=None)
             print(f"Gathering tags from {tag_file}")
-
             tag.columns = self.COLUMNS
             # removing unnecesary
             tag_filt = tag[self.COLUMNS_FILT]
-
-            chr_dict = dict()
-
-            total_dict[tag_filt['chromosome'][0]] = chr_dict
-
             total_data = pd.concat([total_data, tag_filt])
         return total_data
 
 
     # runs through all the tags for each sample
     # for each read in the sample updates counts based on overlap
-    def get_counts(self, dataframe, total_dict):
+    def get_counts(self, dataframe, dictionary):
         print("Getting counts...")
         overlap_vectorized = np.vectorize(self.overlap)
-        overlap_vectorized(dataframe['chromosome'],dataframe['position'], 
-        dataframe['read_len'], dataframe['strand'], total_dict)
+        overlap_vectorized(dataframe['position'], dataframe['read_len'], dataframe['strand'], dictionary)
 
 
+    def get_dict_tags(self, df):    
+        pos_list = list(df['position'])
+
+        pos_dict = dict()
+
+        for index in pos_list:
+            pos_dict[index] = True
+        return pos_dict  
 
 
     # overlap – increments all the values in the dictionary of windows 
     # tag – start index of tag, tag_len – length of tag, dictionary – read
-    def overlap(self, chromosome, tag, tag_len, strand,  total_dict):
-        dictionary = total_dict[chromosome]
-        # ['chromosome', 'read]
+    def overlap(self, tag, tag_len, strand, dictionary):
         center = int(tag + tag_len / 2)
         # the range of for loop is representing the starting positions of the window
         if strand: # checks for strand direction
@@ -72,15 +71,3 @@ class Formating:
                     dictionary[x] = 1
                 else:
                     dictionary[x] += 1
-
-
-    def get_dict_tags(self, df):    
-        pos_list = list(df['position'])
-
-        pos_dict = dict()
-
-        for index in pos_list:
-            pos_dict[index] = True
-        return pos_dict  
-
-

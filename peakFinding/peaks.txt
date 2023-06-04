@@ -1,27 +1,27 @@
 # YSY Peaks 
 # Peak finding parameters: 
 # tag directory = ../tests/tagdir 
-# total peaks = 2756
+# total peaks = 2430
 # peak size = 75
 # peaks found using tags on both strands 
 # minimum distance between peaks = 150
 # genome size = 2000000000 
 # total tags = 1595184 
-# total tags in peaks = 28950
-# approximate IP efficiency = 1.8148376613606958% 
+# total tags in peaks = 26441
+# approximate IP efficiency = 1.6575517307094354% 
 # tags per bp = 0.000797592
 # expected tags per peak = 0.059819399999999995
 # effective number of tags used for normalization = 1595184
-# number of putative peaks = 467725 
+# number of putative peaks = 381974 
 #  
 # input tag directory = ../tests/input 
 # Fold over input required = 4
 # Poisson p-value over input required = 0.0001 
-# Putative peaks filtered by input = 12562  
+# Putative peaks filtered by input = 10721  
 #  
 # size of region used for local filtering = 10000 
 # Fold over local region required = 4 
 # Poisson p-value over local region required = 0.0001 
-# Putative peaks filtered by local filter = 2756  
+# Putative peaks filtered by local filter = 2430  
 #  
 # cmd = peakFinding.py ../tests/tagdir -control ../tests/input 

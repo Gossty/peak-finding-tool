@@ -27,8 +27,8 @@ class Filters():
             if control_counts.get(index) == None:
                 continue
             # normalizing and getting fold value
-            fold_value = (sample_counts[index] ) / (
-                          control_counts[index] )
+            fold_value = (sample_counts[index] / self.sample_length) / (
+                          control_counts[index] / self.control_length)
 
             # checking fold value past threshold and adding to array
             if  fold_value >= self.FOLD_VALUE:
@@ -101,7 +101,7 @@ class Filters():
             # check decrements based on the delta between prev and curr indexes
             check -= (index - prev_index)
             prev_index = index
-
+        
         return tf_bound_local_filt
 
         # TODO don't count for tags that are inside of bigger peak
