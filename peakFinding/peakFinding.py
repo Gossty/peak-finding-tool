@@ -56,19 +56,22 @@ def main():
     sample_df = formating.gather_data(ARGS.tag_directory, total_dict_sample)
 
     # Getting all the counts for windows for sample and control
-    formating.get_counts(sample_df, total_dict_sample)
+
 
     total_output = dict()
 
     putative_peaks = 0
     putative_by_input = 0
     putative_by_loc = 0
-
+    tags_in_peaks = 0
+    
     if flag==0:
         for chromosome in total_dict_sample.keys():
+            chr_df = sample_df.loc[(sample_df['chromosome'] == chromosome)]
+            sample_counts = dict()
+            formating.get_counts(chr_df, sample_counts)
             print("filtering chromosome:", chromosome)
-            sorted_positions = list(total_dict_sample[chromosome])
-            sample_counts = total_dict_sample[chromosome]
+            sorted_positions = list(sample_counts.keys())
             # filtering 
             filters = Filters(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD,
                         len(sample_df), len(sample_df), FOLD_VALUE)
@@ -80,32 +83,40 @@ def main():
 
             # getting the positions of all tags
             # df.loc[(df['col1'] == value) & (df['col2'] < value)]
-            chr_df = sample_df.loc[(sample_df['chromosome'] == chromosome)]
             dict_tags = formating.get_dict_tags(chr_df)
 
             # filtering by fold change sample vs LOCAL_WINDOW
             peaks_output = filters.local_filt(sample_counts, peaks_output, dict_tags)
             putative_by_loc += len(peaks_output)
 
-            peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+            peaks_output = filters.poisson_filt(peaks_output, sample_counts, tags_in_peaks)
             peaks_output.sort()
             total_output[chromosome] = peaks_output
-        peak_stats(peaks_output, sample_counts, sample_df, ARGS, 
+
+        peak_stats(total_output, tags_in_peaks, sample_df, ARGS, 
                 putative_peaks, putative_by_loc, OUT_DIRECTORY)
 
     else:
         total_dict_input = dict()
-        # All the dataframes filtered by columns for each chromosome
         control_df = formating.gather_data( ARGS.control, total_dict_input)
-        formating.get_counts(control_df, total_dict_input)
         
         for chromosome in total_dict_sample.keys():
-            print("filtering chromosome:", chromosome)
+            chr_df = sample_df.loc[(sample_df['chromosome'] == chromosome)]
+            sample_counts = dict()
+            formating.get_counts(chr_df, sample_counts)
+            
             if total_dict_input.get(chromosome) == None:
                 continue
-            sorted_positions = list(total_dict_sample[chromosome])
-            sample_counts = total_dict_sample[chromosome]
-            control_counts = total_dict_input[chromosome]
+
+            control_chr_df = control_df.loc[(control_df['chromosome'] == chromosome)]
+            control_counts= dict()
+            # All the dataframes filtered by columns for each chromosome
+            formating.get_counts(control_chr_df, control_counts)
+
+
+            print("filtering chromosome:", chromosome)
+
+            sorted_positions = list(sample_counts.keys())
             # Getting all the counts for windows for sample and control
             filters = Filters(WINDOW_LENGTH, GENOME_LENGTH, LOCAL_WINDOW, THRESHOLD,
                         len(sample_df), len(control_df), FOLD_VALUE)
@@ -121,10 +132,10 @@ def main():
             putative_by_input += len(peaks_output)
 
             # poisson by expected numvber of peaks in LOCAL_WINDOW
-            peaks_output = filters.poisson_filt(peaks_output, sample_counts)
+            peaks_output = filters.poisson_filt(peaks_output, sample_counts, 
+                                            tags_in_peaks=tags_in_peaks)
 
             # getting the positions of all tags
-            chr_df = sample_df.loc[(sample_df['chromosome'] == chromosome)]
             dict_tags = formating.get_dict_tags(chr_df)
 
             # filtering by fold change sample vs LOCAL_WINDOW
@@ -136,7 +147,7 @@ def main():
             peaks_output.sort()
             total_output[chromosome] = peaks_output
     
-        peak_stats(total_output, total_dict_sample, sample_df, ARGS, 
+        peak_stats(total_output, tags_in_peaks, sample_df, ARGS, 
                 putative_peaks, putative_by_loc, OUT_DIRECTORY, putative_by_input,sample_df)
 
 
@@ -156,8 +167,8 @@ def main():
 
 
 
-def peak_stats(total_output, total_dict_sample, sample_df, input,
-               putative_peaks, putative_by_loc, file_path, putative_by_input=-1, control_df=-1):
+def peak_stats(total_output, tags_in_peaks, sample_df, input, putative_peaks, 
+                putative_by_loc, file_path, putative_by_input=-1, control_df=-1):
 
     
     total_peaks = 0
@@ -169,17 +180,14 @@ def peak_stats(total_output, total_dict_sample, sample_df, input,
     local_wind = LOCAL_WINDOW
 
     total_tags = len(sample_df)
-    tags_in_peaks = 0
     tags_per_bp = 0
     for chromosome in total_output.keys():
-        sample_counts = total_dict_sample[chromosome]
         peaks_output = total_output[chromosome]
         total_peaks += len(peaks_output)
         if len(peaks_output) == 0:
             continue
         prev_peak = peaks_output[0]
         for index in peaks_output:
-            tags_in_peaks += sample_counts[index]
             delta = index - prev_peak
 
             if delta != 0 and delta < minimum_distance_peaks:

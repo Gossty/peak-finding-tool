@@ -118,7 +118,7 @@ class Filters():
 
     # calculates p-value based on expected value for a given window and filters
     # by the given threshold
-    def poisson_filt(self, tf_bound, sample_counts):
+    def poisson_filt(self, tf_bound, sample_counts, tags_in_peaks=None):
         peaks = []
 
         #lambda for poisson/expected value
@@ -134,5 +134,8 @@ class Filters():
             # checking p-value past threshold and adding to array
             if p_value < self.THRESHOLD:
                 peaks.append(index)
+                if tags_in_peaks != None:
+                    tags_in_peaks += sample_counts[index]
 
         return peaks
+

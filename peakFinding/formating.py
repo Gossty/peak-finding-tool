@@ -40,19 +40,17 @@ class Formating:
 
     # runs through all the tags for each sample
     # for each read in the sample updates counts based on overlap
-    def get_counts(self, dataframe, total_dict):
-        print("Getting counts...")
+    def get_counts(self, dataframe, dictionary):
         overlap_vectorized = np.vectorize(self.overlap)
-        overlap_vectorized(dataframe['chromosome'],dataframe['position'], 
-        dataframe['read_len'], dataframe['strand'], total_dict)
+        overlap_vectorized(dataframe['position'], 
+        dataframe['read_len'], dataframe['strand'], dictionary)
 
 
 
 
     # overlap – increments all the values in the dictionary of windows 
     # tag – start index of tag, tag_len – length of tag, dictionary – read
-    def overlap(self, chromosome, tag, tag_len, strand,  total_dict):
-        dictionary = total_dict[chromosome]
+    def overlap(self, tag, tag_len, strand, dictionary):
         # ['chromosome', 'read]
         center = int(tag + tag_len / 2)
         # the range of for loop is representing the starting positions of the window
