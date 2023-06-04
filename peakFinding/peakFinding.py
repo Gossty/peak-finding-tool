@@ -66,6 +66,7 @@ def main():
 
     if flag==0:
         for chromosome in total_dict_sample.keys():
+            print("filtering chromosome:", chromosome)
             sorted_positions = list(total_dict_sample[chromosome])
             sample_counts = total_dict_sample[chromosome]
             # filtering 
@@ -99,6 +100,7 @@ def main():
         formating.get_counts(control_df, total_dict_input)
         
         for chromosome in total_dict_sample.keys():
+            print("filtering chromosome:", chromosome)
             if total_dict_input.get(chromosome) == None:
                 continue
             sorted_positions = list(total_dict_sample[chromosome])
@@ -136,11 +138,7 @@ def main():
     
         peak_stats(total_output, total_dict_sample, sample_df, ARGS, 
                 putative_peaks, putative_by_loc, OUT_DIRECTORY, putative_by_input,sample_df)
-    
-    total = 0
-    for chr in total_output.keys():
-        total += len(total_output[chr])
-    print(total)
+
 
 
     

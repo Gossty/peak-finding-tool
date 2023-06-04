@@ -20,7 +20,6 @@ class Filters():
     # filtering based of fold change.
     # tf_bound keeps track of positions where TFs bound based on whether fold change < 4
     def fc_filt(self, sample_counts, control_counts, peaks_arr):
-        print("Running fold change filter for sample and control...")
         tf_bound = []
         for index in peaks_arr:
             # check if control has this window
@@ -41,7 +40,6 @@ class Filters():
     # window is defined by WINDOW_LENGTH * 2
     # returns an array of filtered starting positions
     def max_count_filt(self, tf_bound, sample_counts):
-        print("Running max_count filter...")
         max_filt = []
 
         check = tf_bound[0]
@@ -77,7 +75,6 @@ class Filters():
 
     # dictionary for helper method
     def local_filt(self, sample_counts, tf_bound, dictionary):
-        print("Running local filter...")
         check = 0           
         start_check = 0    
         loc_density = 0     
@@ -122,7 +119,6 @@ class Filters():
     # calculates p-value based on expected value for a given window and filters
     # by the given threshold
     def poisson_filt(self, tf_bound, sample_counts):
-        print("Running poisson filter...")
         peaks = []
 
         #lambda for poisson/expected value
