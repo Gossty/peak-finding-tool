@@ -262,8 +262,12 @@ def get_bed(total_output, OUT_DIRECTORY):
 
         #removing all values that are not in array_filt
         df = pd.DataFrame()
-        chromosome = [f"chr{chromosome}" for i in range(len(array_filt))]
-        df.insert(0, "Chromosome", chromosome)
+        chromosome_arr = []
+        if 'chr' in str(chromosome):
+            chromosome_arr = [f"{chromosome}" for i in range(len(array_filt))]
+        else:
+            chromosome_arr = [f"chr{chromosome}" for i in range(len(array_filt))]
+        df.insert(0, "Chromosome", chromosome_arr)
         df.insert(1, "Start", array_filt)
 
         new_column = [str(int(i) + WINDOW_LENGTH) for i in array_filt]
