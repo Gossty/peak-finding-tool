@@ -41,7 +41,8 @@ class Filters():
     # returns an array of filtered starting positions
     def max_count_filt(self, tf_bound, sample_counts):
         max_filt = []
-
+        if len(tf_bound) == 0:
+            return max_filt
         check = tf_bound[0]
         # iterating through starting position of tf_bound
         for index in tf_bound:

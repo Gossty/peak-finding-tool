@@ -7,14 +7,21 @@ This repository is used to find peaks in a provided tag directory. It takes as i
 * pandas
 * scipy
 * argparse
-* sys
-* glob 
+
+## Install instructioins
+Once the required libraries are installed, you can install `peakFinding` by running the following command:
+
+`python setup.py install --user`
+
+If install was successful, typing `peakFinding --help` will print the usage information of the tool. After that you would be able to
+
+Alternatively, you could install this tool by running the following commands:
 
 
 ## Usage
 
 ```
-python peakFinding.py [tag_directory] [options]
+peakFinding [tag_directory] [options]
 ```
 
 Optional parameters:
@@ -58,7 +65,7 @@ Note: The code includes print statements for displaying various statistics and i
 ## Example
 
 ```
-python peakFinding.py ./tag_directory ./control_directory
+peakFinding ./tag_directory -control ./control_directory
 ```
 
 This example command runs the peak finding analysis on the tag files in the `tag_directory` using the `control_directory`. 

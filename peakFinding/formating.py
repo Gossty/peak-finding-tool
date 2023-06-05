@@ -21,7 +21,6 @@ class Formating:
         tag_list = []
         total_data = pd.DataFrame(columns=self.COLUMNS_FILT)
         tag_list = glob.glob(f"{directory}/*.tsv")
-
         for tag_file in tag_list:
             tag = pd.read_csv(tag_file, sep='\t', header=None)
             print(f"Gathering tags from {tag_file}")
@@ -29,7 +28,6 @@ class Formating:
             tag.columns = self.COLUMNS
             # removing unnecesary
             tag_filt = tag[self.COLUMNS_FILT]
-
             chr_dict = dict()
 
             total_dict[tag_filt['chromosome'][0]] = chr_dict
@@ -51,7 +49,6 @@ class Formating:
     # overlap – increments all the values in the dictionary of windows 
     # tag – start index of tag, tag_len – length of tag, dictionary – read
     def overlap(self, tag, tag_len, strand, dictionary):
-        # ['chromosome', 'read]
         center = int(tag + tag_len / 2)
         # the range of for loop is representing the starting positions of the window
         if strand: # checks for strand direction

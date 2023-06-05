@@ -1,8 +1,8 @@
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
-from filters import *
-from formating import *
+from .filters import *
+from .formating import *
 import sys
 
 
@@ -13,11 +13,11 @@ import sys
 def arg_parser():
     parser = argparse.ArgumentParser(
         prog='peakFinding',
-        description='Finds Peaks in the provided tag directory'
+        description='Find peaks in a provided tag directory. It takes as input a tag directory containing tag files, and it optionally takes a control directory for peak finding as well as other parameters. The code performs various filtering and analysis steps to identify peaks and outputs the results in a BED file format and a txt file with statistical information.'
     )
 
     parser.add_argument('tag_directory', help="tag directory for analysis")
-    parser.add_argument("-control", help="control of peak finding")
+    parser.add_argument("-control", help="control directory for peak finding")
     parser.add_argument('-o',help='output directory')
     parser.add_argument('-poisson',help='manually set the threshold for poisson')
     parser.add_argument('-fold', help='manually set the fold change for peak detection')
@@ -166,6 +166,8 @@ def main():
     # converting to bed file for viewing in IGV
     get_bed(total_output, OUT_DIRECTORY)
 
+    sys.exit(0)
+
 
 
 def peak_stats(total_output, tags_in_peaks, sample_df, input, putative_peaks, 
@@ -293,4 +295,4 @@ def write_row(row, file):
     file.write(f"{row['Chromosome']}\t{row['Start']}\t{row['End']}")
     file.write('\n')
 
-main()
+print(__name__)
