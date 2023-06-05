@@ -17,12 +17,24 @@ If install was successful, typing `peakFinding --help` will print the usage info
 
 Alternatively, you could install this tool by running the following commands:
 
+`pip install wheel sdist `
+
+`python setup.py bdist_wheel sdist`
+
+`pip install .`
+
+If the following commands give you a warning that the installation was not on PATH, you would need to add the directory to which it installed into your shell's path (e.g. on mac for zsh it would be `path+=<the_path_where_saved>`)
+
+
 
 ## Usage
 
 ```
 peakFinding [tag_directory] [options]
 ```
+
+If you are unable to install the `peakFinding` tool, you can take another way to run our code
+
 
 Optional parameters:
 ```
