@@ -25,6 +25,22 @@ Alternatively, you could install this tool by running the following commands:
 
 If the following commands give you a warning that the installation was not on PATH, you would need to add the directory to which it installed into your shell's path (e.g. on mac for zsh it would be `path+=<the_path_where_saved>`)
 
+Note:
+
+If you are unable to install the `peakFinding` tool, you can take another way to run our code:
+(please make sure that the paths are correct on your device)
+
+Here is an example of running it in the terminal
+```
+git clone https://github.com/Gossty/peak-finding-tool.git
+
+cd peakFinding 
+//You should be able to see peakFinding.py in this directory
+
+python peakFinding.py [tag_directory] [options]
+```
+Options can be seen below.
+
 
 
 ## Usage
@@ -46,20 +62,6 @@ Optional parameters:
 - `-fragLen <window_length>` (optional): Manually specify the length of the window. Default is 75.
 - `-L <local_window>` (optional): Manually specify the length of the window for local filter. Default is 10000.
 
-Note:
-
-If you are unable to install the `peakFinding` tool, you can take another way to run our code:
-(please make sure that the paths are correct on your device)
-
-Here is an example of running it in the terminal
-```
-git clone https://github.com/Gossty/peak-finding-tool.git
-
-cd peakFinding 
-//You should be able to see peakFinding.py in this folder
-
-python peakFinding.py [tag_directory] [options]
-```
 
 ## Workflow
 
