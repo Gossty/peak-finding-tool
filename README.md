@@ -33,9 +33,6 @@ If the following commands give you a warning that the installation was not on PA
 peakFinding [tag_directory] [options]
 ```
 
-If you are unable to install the `peakFinding` tool, you can take another way to run our code
-
-
 Optional parameters:
 ```
     [-control <control_directory>] [-o <output_directory>] [-poisson <threshold>] [-fold <fold_change>] [-fragLen <window_length>]
@@ -48,6 +45,21 @@ Optional parameters:
 - `-fold <fold_change>` (optional): Manually set the fold change for peak detection. Default is 4.
 - `-fragLen <window_length>` (optional): Manually specify the length of the window. Default is 75.
 - `-L <local_window>` (optional): Manually specify the length of the window for local filter. Default is 10000.
+
+Note:
+
+If you are unable to install the `peakFinding` tool, you can take another way to run our code:
+(please make sure that the paths are correct on your device)
+
+Here is an example of running it in the terminal
+```
+git clone https://github.com/Gossty/peak-finding-tool.git
+
+cd peakFinding 
+//You should be able to see peakFinding.py in this folder
+
+python peakFinding.py [tag_directory] [options]
+```
 
 ## Workflow
 
