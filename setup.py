@@ -1,6 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
+
 # version-keeping code based on pybedtools
 curdir = os.path.abspath(os.path.dirname(__file__))
 MAJ = 1
@@ -26,7 +27,7 @@ setup(
     install_requires=['pandas', 'numpy', 'argparse', 'scipy'],
     entry_points= {
         "console_scripts": [
-            "peakFinding=peakFinding.peakFinding:main"
+            f"peakFinding=peakFinding.peakFinding:main"
         ],
     },
 )

@@ -9,13 +9,13 @@ This repository is used to find peaks in a provided tag directory. It takes as i
 * argparse
 
 ## Install instructioins
-Once the required libraries are installed, you can install `peakFinding` by running the following command:
+Once the required libraries are installed, you can install `peakFinding` by running the following command inside of `peak-finding-tool` directory:
 
 `python setup.py install --user`
 
-If install was successful, typing `peakFinding --help` will print the usage information of the tool. After that you would be able to
+If install was successful, typing `peakFinding --help` will print the usage information of the tool. After that you would be able to use the tool.
 
-Alternatively, you could install this tool by running the following commands:
+Alternatively, you can install this tool by running the following commands inside of `peak-finding-tool` directory:
 
 `pip install wheel sdist `
 
@@ -23,27 +23,34 @@ Alternatively, you could install this tool by running the following commands:
 
 `pip install .`
 
-If the following commands give you a warning that the installation was not on PATH, you would need to add the directory to which it installed into your shell's path (e.g. on mac for zsh it would be `path+=<the_path_where_saved>`)
+If the following commands give you a warning that the installation was not on PATH, you would need to add the directory to which it installed into your shell's path (on mac for zsh it would be `path+=<the_path_where_saved>`; on bash `export PATH=$PATH:<the_path_where_saved`, e.g. `export PATH=$PATH:$HOME/.local/bin`)
+
+
 
 Note:
 
-If you are unable to install the `peakFinding` tool, you can take another way to run our code:
-(please make sure that the paths are correct on your device)
+If you are unable to install the `peakFinding` tool, you can take another way to run our code: (please make sure that the paths are correct on your device)
 
 Here is an example of running it in the terminal
 ```
 git clone https://github.com/Gossty/peak-finding-tool.git
 
 cd peakFinding 
-//You should be able to see peakFinding.py in this directory
 
 python peakFinding.py [tag_directory] [options]
 ```
-Options can be seen below.
 
-
+**If you run the code using this way (through .py file), make sure to use the output directory inside of `./peakFinding` when running with `-o` option (i.e. create a new directory).**
 
 ## Usage
+
+First of all you need to obtain a tag_directory before using the tool. You can do that by using a command line from Homer:
+
+```
+makeTagDirectory <output directory> <input BAM file> [options]
+```
+
+You can use sample test data inside of `./tests/` and `./example-files` directory of GitHub repository.
 
 ```
 peakFinding [tag_directory] [options]
@@ -80,8 +87,9 @@ The following filtering steps are applied:
 #### **With input directory**: 
 
 Filtering steps are applied to identify potential peaks:
-   - Fold Change Filtering: The code filters based on the fold change, where a fold value of `FOLD_VALUE` or greater indicates a binding site.
    - Maximum Count Filtering: The code selects the position with the maximum tag count within each window of width WINDOW_LENGTH * 2, so as to not double count potential peaks.
+   - Fold Change Filtering: The code filters based on the fold change, where a fold value of `FOLD_VALUE` or greater indicates a binding site.
+   - Local Density Filtering: The code filters based on the fold change, of the current density to the local density of window with width `LOCAL_WINDOW`; filtering occurs based on the fold value specified with `FOLD_VALUE`.
    - Poisson Filtering: The code applies a Poisson filter using the expected value and a threshold to further specify the peak selection. It calculates the probability of seeing the observed number of tags at a given window using expected tags per window obtained in the local files and filters the peaks through the specified `THRESHOLD`. Expected value `exp = (WINDOW_LENGTH * #input_tags) / GENOME_LENGTH`. 
 #
 5. The final filtered peaks are saved in a BED file format named `peaks.bed` in the specified output directory (or the current directory if not provided). Additionaly outputs `peaks.txt` file with statistical data.
@@ -98,7 +106,7 @@ This example command runs the peak finding analysis on the tag files in the `tag
 
 ## Data
 
-`example_files`: directory containing tag directories for the first 16 chromosomes for input and Klf4 transcription factor. This data should return an empty `bed` file because it is noise data.
+`example-files`: directory containing tag directories for the first 16 chromosomes for input and Klf4 transcription factor. This data should return an empty `bed` file because it is noise data.
 
 `tests`: directory containing the test data of all chromosomes for input and Klf4, Oct4, Sox2 transcription factors. This data should return a `peaks.bed` file indicating all the peaks and additional statistical information `peaks.txt`.
 

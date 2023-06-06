@@ -1,13 +1,13 @@
 import argparse
 import pandas as pd
-import matplotlib.pyplot as plt
+import os
 from .filters import *
 from .formating import *
 import sys
 
-
-# dictionary stores counts for each window for given starting position
-
+# constants for printing
+RED = '\033[91m'
+RESET = '\033[0m'
 
 # getting user input
 def arg_parser():
@@ -25,27 +25,30 @@ def arg_parser():
     parser.add_argument('-L', help='manually set the scope for local filtering')
     return parser.parse_args()
 
-
+# assigning user input
 ARGS = arg_parser()
 WINDOW_LENGTH = 75 if ARGS.fragLen == None else int(ARGS.fragLen)
 GENOME_LENGTH = 2*10**9
 LOCAL_WINDOW = 10000 if ARGS.L == None else int(ARGS.L)
 THRESHOLD = 1 * 10**(-4) if ARGS.poisson == None else float(ARGS.poisson) 
 FOLD_VALUE = 4 if ARGS.fold == None else float(ARGS.fold)
+OUT_DIRECTORY='./' if ARGS.o == None else str(ARGS.o)
 COLUMNS = ["blank", "chromosome", "position", "strand", "num_reads", "read_len"]
 COLUMNS_FILT = ['chromosome', 'position', 'read_len', 'strand']
-OUT_DIRECTORY='/' if ARGS.o == None else ARGS.o
+
+if os.path.exists(OUT_DIRECTORY) == False:
+    raise Exception(RED + "Error: Path to output directory doesn't exist" + RESET)
 
 
-
-
+# main function of the program that runs the filters according to the user input
+# outputs peaks.txt and peaks.bed files
 def main():
-    flag= 0
-    #Updating the values based user input
-    if hasattr(ARGS,"tag_directory")==False:
-        raise Exception("Please provide tag_directory. Type 'peakFinding -help' for the usage of this program")
+    if ARGS.tag_directory == None:
+        raise Exception(RED + "Error: Please provide tag_directory. Type 'peakFinding -help' for the usage of this program" + RESET)
+    if os.path.exists(ARGS.tag_directory) == False:
+        raise Exception(RED + "Error: Path to tag_directory doesn't exist" + RESET)
     
-    flag = 0 if ARGS.control == None else 1
+    FLAG = 0 if ARGS.control == None else 1
     
     
     # formatting 
@@ -55,20 +58,21 @@ def main():
     total_dict_sample = dict()
     sample_df = formating.gather_data(ARGS.tag_directory, total_dict_sample)
 
-    # Getting all the counts for windows for sample and control
-
 
     total_output = dict()
 
+    # counters for statistics in peaks.txt
     putative_peaks = 0
     putative_by_input = 0
     putative_by_loc = 0
     tags_in_peaks = 0
     
-    if flag==0:
+    if FLAG == 0:
         for chromosome in total_dict_sample.keys():
+            # Getting dataframe with tags for the current chromosome
             chr_df = sample_df.loc[(sample_df['chromosome'] == chromosome)]
             sample_counts = dict()
+            # Getting all the counts for windows for sample and control
             formating.get_counts(chr_df, sample_counts)
             print("filtering chromosome:", chromosome)
             sorted_positions = list(sample_counts.keys())
@@ -78,11 +82,9 @@ def main():
 
             # filtering double counted peaks
             peaks_output = filters.max_count_filt(sorted_positions, sample_counts)
-            array_for_graph = peaks_output
             putative_peaks += len(peaks_output)
 
             # getting the positions of all tags
-            # df.loc[(df['col1'] == value) & (df['col2'] < value)]
             dict_tags = formating.get_dict_tags(chr_df)
 
             # filtering by fold change sample vs LOCAL_WINDOW
@@ -94,12 +96,17 @@ def main():
             peaks_output.sort()
             total_output[chromosome] = peaks_output
 
+        # printing txt file with all the stats
         peak_stats(total_output, tags_in_peaks, sample_df, ARGS, 
                 putative_peaks, putative_by_loc, OUT_DIRECTORY)
 
     else:
+
+        if os.path.exists(ARGS.control) == False:
+            raise Exception(RED + "Error: Path to control_directory doesn't exist" + RESET)
+        
         total_dict_input = dict()
-        control_df = formating.gather_data( ARGS.control, total_dict_input)
+        control_df = formating.gather_data(ARGS.control, total_dict_input)
         
         for chromosome in total_dict_sample.keys():
             chr_df = sample_df.loc[(sample_df['chromosome'] == chromosome)]
@@ -125,7 +132,6 @@ def main():
 
             # filtering double counted peaks
             peaks_output = filters.max_count_filt(sorted_positions, sample_counts)
-            array_for_graph = peaks_output
             putative_peaks += len(peaks_output)
 
             # filtering by fold change sample vs control
@@ -147,7 +153,8 @@ def main():
                                                   sample_counts, tags_in_peaks)
             peaks_output.sort()
             total_output[chromosome] = peaks_output
-    
+        
+        # printing txt file with all the stats
         peak_stats(total_output, tags_in_peaks, sample_df, ARGS, 
                 putative_peaks, putative_by_loc, OUT_DIRECTORY, putative_by_input,sample_df)
 
@@ -155,12 +162,6 @@ def main():
 
     
 
-    # x = list(range(0, 151))
-    # bar_chart = [0] * 151
-    # for index in array_for_graph:
-    #     bar_chart[sample_counts[index]] +=1
-    # plt.bar(x, bar_chart)
-    # plt.show()
 
 
     # converting to bed file for viewing in IGV
@@ -169,7 +170,7 @@ def main():
     sys.exit(0)
 
 
-
+# method that returns peaks.txt file through the statistical data
 def peak_stats(total_output, tags_in_peaks, sample_df, input, putative_peaks, 
                 putative_by_loc, file_path, putative_by_input=-1, control_df=-1):
 
@@ -190,6 +191,8 @@ def peak_stats(total_output, tags_in_peaks, sample_df, input, putative_peaks,
         if len(peaks_output) == 0:
             continue
         prev_peak = peaks_output[0]
+
+        # calculate minimum distance between peaks
         for index in peaks_output:
             delta = index - prev_peak
 
@@ -209,14 +212,12 @@ def peak_stats(total_output, tags_in_peaks, sample_df, input, putative_peaks,
     command = ' '.join(sys.argv)
 
 
-
-
     ip_efficiency = (tags_in_peaks / total_tags) * 100
 
     try:
-        file = open(f'.{file_path}/peaks.txt', 'w')
+        file = open(f'{file_path}/peaks.txt', 'w')
     except FileNotFoundError:
-        print("The given output path is invalid")
+        print(RED+"The given output path is invalid"+RESET)
 
     # Write content to the file
     file.write('# YSY Peaks \n')
@@ -259,10 +260,10 @@ def peak_stats(total_output, tags_in_peaks, sample_df, input, putative_peaks,
 
 # building a bed file using pybed library
 def get_bed(total_output, OUT_DIRECTORY):
-    file = open(f'.{OUT_DIRECTORY}/peaks.bed', 'w')
+    file = open(f'{OUT_DIRECTORY}/peaks.bed', 'w')
 
     for chromosome in total_output.keys():
-        file = open(f'.{OUT_DIRECTORY}/peaks.bed', 'a')
+        file = open(f'{OUT_DIRECTORY}/peaks.bed', 'a')
 
         array_filt = total_output[chromosome]
         if len(array_filt) == 0:
@@ -290,9 +291,10 @@ def get_bed(total_output, OUT_DIRECTORY):
 
     print(f"peaks.bed output goes to this directory: {OUT_DIRECTORY}")
 
-
+# helper method for get_bed
 def write_row(row, file):
     file.write(f"{row['Chromosome']}\t{row['Start']}\t{row['End']}")
     file.write('\n')
 
-print(__name__)
+if __name__ == "__main__":
+    main()
