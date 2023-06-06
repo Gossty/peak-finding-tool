@@ -8,7 +8,7 @@ This repository is used to find peaks in a provided tag directory. It takes as i
 * scipy
 * argparse
 
-## Install instructioins
+## Install Instructions
 Once the required libraries are installed, you can install `peakFinding` by running the following command inside of `peak-finding-tool` directory:
 
 `python setup.py install --user`
@@ -27,7 +27,7 @@ If the following commands give you a warning that the installation was not on PA
 
 
 
-Note:
+**Note:**
 
 If you are unable to install the `peakFinding` tool, you can take another way to run our code: (please make sure that the paths are correct on your device)
 
@@ -40,7 +40,7 @@ cd peakFinding
 python peakFinding.py [tag_directory] [options]
 ```
 
-**If you run the code using this way (through .py file), make sure to use the output directory inside of `./peakFinding` when running with `-o` option (i.e. create a new directory).**
+**If you run the code using this way (through .py file), make sure to use the output directory inside of `./peakFinding/` when running with `-o` option (i.e. create a new directory inside of `./peakFinding/`).**
 
 ## Usage
 
@@ -50,7 +50,7 @@ First of all you need to obtain a tag_directory before using the tool. You can d
 makeTagDirectory <output directory> <input BAM file> [options]
 ```
 
-You can use sample test data inside of `./tests/` and `./example-files` directory of GitHub repository.
+You can use sample test data inside of `./tests/` and `./example-files/` directory of GitHub repository.
 
 ```
 peakFinding [tag_directory] [options]
@@ -75,8 +75,9 @@ Optional parameters:
 1. The code reads the command-line arguments to gather the necessary input for analysis.
 2. It processes the tag directory, filtering for necessary columns and storing the tag data in dataframes.
 3. The code calculates the tag counts for each window for the sample data, saving these to a dictionary where the key is the position and the value is the count associated with that position.
+4. Next are filtering steps described below.
+
 ### Filtering steps follow two separate workflows
-#
 #### **Without control/input directory**:
 
 
@@ -94,7 +95,7 @@ Filtering steps are applied to identify potential peaks:
 #
 5. The final filtered peaks are saved in a BED file format named `peaks.bed` in the specified output directory (or the current directory if not provided). Additionaly outputs `peaks.txt` file with statistical data.
 
-Note: The code includes print statements for displaying various statistics and intermediate results during the analysis process.
+Note: The code includes print statements for displaying various intermediate results during the analysis process.
 
 ## Example
 
@@ -108,13 +109,13 @@ This example command runs the peak finding analysis on the tag files in the `tag
 
 `example-files`: directory containing tag directories for the first 16 chromosomes for input and Klf4 transcription factor. This data should return an empty `bed` file because it is noise data.
 
-`tests`: directory containing the test data of all chromosomes for input and Klf4, Oct4, Sox2 transcription factors. This data should return a `peaks.bed` file indicating all the peaks and additional statistical information `peaks.txt`.
+`tests`: directory containing the test data of all chromosomes for input and Klf4 transcription factors. This data should return a `peaks.bed` file indicating all the peaks and additional statistical information `peaks.txt`.
 
 The dataset is originally from this paper:
 Chronis C, Fiziev P, Papp B, Butz S, Bonora G, Sabri S, Ernst J, Plath K. Cooperative Binding of Transcription Factors Orchestrates Reprogramming. Cell. 2017 Jan 26;168(3):442-459.e20. doi: 10.1016/j.cell.2016.12.016. Epub 2017 Jan 19. PMID: 28111071; PMCID: PMC5302508.
 https://www.ncbi.nlm.nih.gov/pubmed/28111071
 
-## Credit:
+## Credit
 Our current implementation heavily relies on documentation of the following libraries:
 
 - MACS2
