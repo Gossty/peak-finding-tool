@@ -1,4 +1,5 @@
 # Peak Finding
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 This repository is used to find peaks in a provided tag directory. It takes as input a tag directory containing tag files, and it optionally takes a control directory for peak finding as well as other parameters. The code performs various filtering and analysis steps to identify peaks and outputs the results in a BED file format and a txt file with statistical information.
 
